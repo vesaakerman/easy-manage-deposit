@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.easy.report
 
-import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, singleArgConverter}
+import org.rogach.scallop.{ScallopConf, Subcommand}
 
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
   appendDefaultToDescription = true
@@ -52,4 +52,15 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   addSubcommand(summaryCmd)
 
   footer("")
+
+  //class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
+  //  val apples = opt[Int](required = true)
+  //  val bananas = opt[Int]()
+  //  val name = trailArg[String]()
+  //  verify()
+  //}
+
+  //val conf = new Conf(args)  // Note: This line also works for "object Main extends App"
+  //println("apples are: " + conf.apples())
+
 }

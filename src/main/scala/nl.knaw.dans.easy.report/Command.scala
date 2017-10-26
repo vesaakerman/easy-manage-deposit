@@ -15,13 +15,14 @@
  */
 package nl.knaw.dans.easy.report
 
+import java.io.FileReader
+
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import resource._
 
 import scala.language.reflectiveCalls
-import scala.util.control.NonFatal
-import scala.util.{ Failure, Try }
+import scala.util.Try
+import org.apache.commons.csv._
 
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
@@ -32,12 +33,18 @@ object Command extends App with DebugEnhancedLogging {
   }
   val app = new EasyDepositReportApp(configuration)
 
+  val in = new FileReader("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/0168583c-0f4a-4691-a136-371f147aa14d/deposit.properties")
+
   val result: Try[FeedBackMessage] = commandLine.subcommand match {
     case Some(full @ commandLine.fullCmd) =>
       app.createFullReport()
-    case Some(summary @ commandLine.summaryCmd) =>
+      //Try { "command" }
+      //Try {in.read().toString}
+      //Try {in.read().toString}
+      //Try {in.getEncoding}
 
-      ???
+    case Some(summary @ commandLine.summaryCmd) =>
+      Try { "command" }
     case _ => throw new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")
       Try { "Unknown command" }
 
