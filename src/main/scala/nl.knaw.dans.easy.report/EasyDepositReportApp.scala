@@ -40,11 +40,13 @@ class EasyDepositReportApp(configuration: Configuration) {
 
   /* ------------- Full report-------------------- */
   val csvFormat: CSVFormat = CSVFormat.RFC4180.withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DEPOSIT_CREATION_TIMESTAMP", "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION").withDelimiter(',')
-  val csvPrinter = new CSVPrinter(new FileWriter("/Users/gulcinermis/git/service/easy/easy-deposit-report/mendeleyReport2" + ".csv"), csvFormat.withDelimiter(','))
+  val csvPrinter = new CSVPrinter(new FileWriter("./mendeleyReport2" + ".csv"), csvFormat.withDelimiter(','))
+  //val csvPrinter = new CSVPrinter(new FileWriter("/Users/gulcinermis/git/service/easy/easy-deposit-report/mendeleyReport2" + ".csv"), csvFormat.withDelimiter(','))
   /* --------------------------------------------- */
 
   /* ------------- Summary report-------------------- */
-  val summaryOutput = new File("/Users/gulcinermis/git/service/easy/easy-deposit-report/mendeleyReport2_Summary" + "txt")
+  val summaryOutput = new File("./mendeleyReport2_Summary" + "txt")
+  //val summaryOutput = new File("/Users/gulcinermis/git/service/easy/easy-deposit-report/mendeleyReport2_Summary" + "txt")
   val fileWriter = new FileWriter(summaryOutput)
   /* ------------------------------------------------ */
 
@@ -55,14 +57,15 @@ class EasyDepositReportApp(configuration: Configuration) {
       .filter(_.isDirectory)
       .map(_.getName)
   }
-
-  val dirs = getListOfSubDirectories("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox")
+  val dirs = getListOfSubDirectories("./data/easy-ingest-flow-inbox")
+  //val dirs = getListOfSubDirectories("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox")
   /* ------------------------------------------------------------------------------------ */
 
 
   /* ------------- Last modified time of the directory 'easy-ingest-flow-inbox' -------------------- */
   /* -------------------------THIS IS NOT NECESSARY FOR THE REPORTS--------------------------------- */
-  val file = new File("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox")
+  val file = new File("./data/easy-ingest-flow-inbox")
+  //val file = new File("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox")
   println(file.lastModified())
   val sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
   println(sdf.format(file.lastModified()))
@@ -116,13 +119,14 @@ class EasyDepositReportApp(configuration: Configuration) {
        //val watcher: WatchService = FileSystems.getDefault.newWatchService
 
        /* --------------path of deposit.properties file in subdirectory i------------------*/
-       pthname = "/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/" + i + "/deposit.properties"
+       pthname = "./data/easy-ingest-flow-inbox/" + i + "/deposit.properties"
+       //pthname = "/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/" + i + "/deposit.properties"
        /* --------------------------------------------------------------------------------*/
 
        /* ---------------------------path of subdirectory i-------------------------------*/
-       pthname2 = "/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/" + i
+       pthname2 = "./data/easy-ingest-flow-inbox/" + i
+       //pthname2 = "/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/" + i
        /* --------------------------------------------------------------------------------*/
-
 
        val config = new PropertiesConfiguration(pthname)
 
