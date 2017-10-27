@@ -38,13 +38,12 @@ object Command extends App with DebugEnhancedLogging {
   val result: Try[FeedBackMessage] = commandLine.subcommand match {
     case Some(full @ commandLine.fullCmd) =>
       app.createFullReport()
-      //Try { "command" }
-      //Try {in.read().toString}
-      //Try {in.read().toString}
-      //Try {in.getEncoding}
 
     case Some(summary @ commandLine.summaryCmd) =>
-      Try { "command" }
+      app.createSummaryReport()
+      //Try { "command" }
+
+
     case _ => throw new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")
       Try { "Unknown command" }
 
