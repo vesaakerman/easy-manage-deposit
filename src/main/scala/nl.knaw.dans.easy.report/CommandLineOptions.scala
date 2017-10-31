@@ -40,13 +40,13 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |Options:
        |""".stripMargin)
   val fullCmd: Subcommand = new Subcommand("full") {
-    val depositor = trailArg[String]("depositor")
+    //val depositor = trailArg[String]("depositor")
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(fullCmd)
 
   val summaryCmd: Subcommand = new Subcommand("summary") {
-    val depositor = trailArg[String]("depositor")
+    //val depositor = trailArg[String]("depositor")
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(summaryCmd)

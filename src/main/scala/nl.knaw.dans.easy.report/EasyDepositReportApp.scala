@@ -23,6 +23,8 @@ import java.text.SimpleDateFormat
 import java.util
 import java.util.Calendar
 
+import com.sun.jmx.snmp.Timestamp
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration.{DefaultIOFactory, IOFactory, PropertiesReader}
 import org.apache.commons.configuration.{PropertiesConfiguration, PropertyConverter}
 import org.apache.commons.csv.{CSVFormat, CSVPrinter, _}
@@ -33,67 +35,58 @@ import scala.io.Source
 import scala.tools.nsc.io.Directory
 import scala.tools.util
 import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
-import com.sun.jmx.snmp.Timestamp
-//import com.sun.net.httpserver.Authenticator.Success
-
-
-class EasyDepositReportApp(configuration: Configuration) {
+import org.apache.commons.csv.CSVParser
+import org.apache.commons.csv.CSVRecord
+import java.io.FileReader
+import java.io.IOException
 
 
 
-  /* ------------- Full report-------------------- */
+class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLogging{
+
   val csvFormat: CSVFormat = CSVFormat.RFC4180.withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DEPOSIT_CREATION_TIMESTAMP", "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR OF CONTINUED DEPOSITS").withDelimiter(',')
-  val csvPrinter = new CSVPrinter(new FileWriter("./mendeleyReport2" + ".csv"), csvFormat.withDelimiter(','))
-  println(csvFormat.format())
-  //val csvPrinter = new CSVPrinter(new FileWriter("/Users/gulcinermis/git/service/easy/easy-deposit-report/mendeleyReport2" + ".csv"), csvFormat.withDelimiter(','))
-  /* --------------------------------------------- */
+  val csvPrinter = new CSVPrinter(new FileWriter("./data/mendeleyReport2" + ".csv"), csvFormat.withDelimiter(','))
 
-  /* ------------- Summary report-------------------- */
-  val summaryOutput = new File("./mendeleyReport2_Summary" + ".txt")
-  //val summaryOutput = new File("/Users/gulcinermis/git/service/easy/easy-deposit-report/mendeleyReport2_Summary" + "txt")
+  val out: Appendable = new StringBuffer()
+  val printer : CSVPrinter = csvFormat.print(out)
+
+  logger.info(csvFormat.format())
+
+  val summaryOutput = new File("./data/mendeleyReport2_Summary" + ".txt")
   val fileWriter = new FileWriter(summaryOutput)
-  /* ------------------------------------------------ */
 
-  /* ------------- List of subdirectories in easy-ingest-flow-inbox and easy-sword2 -------------------- */
   def getListOfSubDirectories(directoryName: String): Array[String] = {
     (new File(directoryName))
-      .listFiles
-      .filter(_.isDirectory)
-      .map(_.getName)
+          .listFiles
+          .filter(_.isDirectory)
+          .map(_.getName)
   }
   val dirs = getListOfSubDirectories("./data/easy-ingest-flow-inbox")
   val dirsSword = getListOfSubDirectories("./data/easy-sword2")
-  //val dirs = getListOfSubDirectories("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox")
-  /* ------------------------------------------------------------------------------------ */
 
-  /*-------------------------List of files in a directory---------------------------------*/
+
   def getListOfFiles(dir: String):List[File] = {
     val d = new File(dir)
     if (d.exists && d.isDirectory) {
-      d.listFiles.filter(_.isFile).toList
+        d.listFiles.filter(_.isFile).toList
     } else {
       List[File]()
     }
   }
-  /* ------------------------------------------------------------------------------------ */
 
   /* --------- Last modified time of the directory 'easy-ingest-flow-inbox' and 'easy-sword2'------- */
   /* -------------------------THIS IS NOT NECESSARY FOR THE REPORTS--------------------------------- */
-  val file = new File("./data/easy-ingest-flow-inbox")
-  val fileSword = new File("./data/easy-sword2")
-  //val file = new File("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox")
-  //println(file.lastModified())
-  val sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
-  println(sdf.format(file.lastModified()))
-  println(sdf.format(fileSword.lastModified()))
+  //val file = new File("./data/easy-ingest-flow-inbox")
+  //val fileSword = new File("./data/easy-sword2")
+  //val sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
+  //println(sdf.format(file.lastModified()))
+  //println(sdf.format(fileSword.lastModified()))
   /* ----------------------------------------------------------------------------------------------- */
 
   /* ------------ Size of the directory 'easy-ingest-flow-inbox & easy-sword2' --------------------- */
   /* -------------------------THIS IS NOT NECESSARY FOR THE REPORTS--------------------------------- */
-  println(file.length())
-  println(fileSword.length())
+  //println(file.length())
+  //println(fileSword.length())
   /* ----------------------------------------------------------------------------------------------- */
 
 
@@ -133,67 +126,59 @@ class EasyDepositReportApp(configuration: Configuration) {
 
   var pthname2 = "default"
 
-  //var totNbrOfContinuedDeposits = 0
 
   /*----------------------------------For each subdirectory i in the directory easy-ingest-flow---------------------------------- */
-  for (i <- dirs) {
-       println(i)
+  dirs.foreach {i =>
+  //for (i <- dirs) {
+       //println(i)
        //val watcher: WatchService = FileSystems.getDefault.newWatchService
 
-       /* --------------path of deposit.properties file in subdirectory i------------------*/
        pthname = "./data/easy-ingest-flow-inbox/" + i + "/deposit.properties"
-       //pthname = "/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/" + i + "/deposit.properties"
-       /* --------------------------------------------------------------------------------*/
-
-       /* ---------------------------path of subdirectory i-------------------------------*/
-       pthname2 = "./data/easy-ingest-flow-inbox/" + i
-       //pthname2 = "/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/" + i
-       /* --------------------------------------------------------------------------------*/
+       pthname2 = "./data/easy-ingest-flow-inbox/"+ i
 
        var nbrOfContinuedDeposits = 0
 
        val dirs2 = getListOfFiles(pthname2)
 
-       for(j <- dirs2){
+       dirs2.foreach {j =>
            if(j.getName.contains("zip")){
               nbrOfContinuedDeposits = nbrOfContinuedDeposits + 1
-              //totNbrOfContinuedDeposits = totNbrOfContinuedDeposits + 1
            }
        }
 
        val config = new PropertiesConfiguration(pthname)
-
        var file2 = new File(pthname2)
 
        /*-------Depositor------------------------*/
-       println(config.getString("depositor.userId"))
+       logger.info(config.getString("depositor.userId"))
        /*-----------------------------------------*/
 
        /*-------Deposit_ID------------------------*/
-       println(config.getString("bag-store.bag-id"))
+       logger.info(config.getString("bag-store.bag-id"))
        /*-----------------------------------------*/
 
        /*-------Deposit State---------------------*/
-       println(config.getString("state.label"))
+       logger.info(config.getString("state.label"))
        /*-----------------------------------------*/
 
        /*--------------DOI------------------------*/
-       println(config.getString("identifier.doi"))
+       logger.info(config.getString("identifier.doi"))
        /*-----------------------------------------*/
 
        /*-----------Description-------------------*/
-       println(config.getString("state.description"))
+       logger.info(config.getString("state.description"))
        /*-----------------------------------------*/
 
        /*--------DEPOSIT_UPDATE_TIMESTAMP---------*/
        /*-------??????????????????????????--------*/
        var sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
-       println(sdf.format(file2.lastModified()))
+       logger.info(sdf.format(file2.lastModified()))
        /*-----------------------------------------*/
 
-       /*--------Print the info of current deposit to csv file-----------*/
+
        csvPrinter.printRecord(config.getString("depositor.userId"), config.getString("bag-store.bag-id"), config.getString("state.label"), config.getString("identifier.doi"), "unknown", sdf.format(file2.lastModified()), config.getString("state.description"), nbrOfContinuedDeposits.toString)
-       /*-----------------------------------------*/
+       printer.printRecord(config.getString("depositor.userId"), config.getString("bag-store.bag-id"), config.getString("state.label"), config.getString("identifier.doi"), "unknown", sdf.format(file2.lastModified()), config.getString("state.description"), nbrOfContinuedDeposits.toString)
+
 
        /*--Update the nbr and space of deposits by the depositor 'mendeleydata'--*/
        if(config.getString("depositor.userId").equals("mendeleydata")){
@@ -242,28 +227,23 @@ class EasyDepositReportApp(configuration: Configuration) {
   }
 
   /*----------------------------------For each subdirectory i in the directory easy-sword2---------------------------------- */
-  for (i <- dirsSword) {
-    println(i)
+
+  dirsSword.foreach { i =>
+  //for (i <- dirsSword) {
+    logger.info(i)
     //val watcher: WatchService = FileSystems.getDefault.newWatchService
 
-    /* --------------path of deposit.properties file in subdirectory i------------------*/
     pthname = "./data/easy-sword2/" + i + "/deposit.properties"
-    //pthname = "/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/" + i + "/deposit.properties"
-    /* --------------------------------------------------------------------------------*/
-
-    /* ---------------------------path of subdirectory i-------------------------------*/
     pthname2 = "./data/easy-sword2/" + i
-    //pthname2 = "/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/" + i
-    /* --------------------------------------------------------------------------------*/
 
     var nbrOfContinuedDeposits = 0
 
     val dirs2 = getListOfFiles(pthname2)
 
-    for(j <- dirs2){
+    dirs2.foreach { j =>
+    //for(j <- dirs2){
       if(j.getName.contains("zip")){
         nbrOfContinuedDeposits = nbrOfContinuedDeposits + 1
-        //totNbrOfContinuedDeposits = totNbrOfContinuedDeposits + 1
       }
     }
 
@@ -272,34 +252,35 @@ class EasyDepositReportApp(configuration: Configuration) {
     var file2 = new File(pthname2)
 
     /*-------Depositor------------------------*/
-    println(config.getString("depositor.userId"))
+    logger.info(config.getString("depositor.userId"))
     /*-----------------------------------------*/
 
     /*-------Deposit_ID------------------------*/
-    println(config.getString("bag-store.bag-id"))
+    logger.info(config.getString("bag-store.bag-id"))
     /*-----------------------------------------*/
 
     /*-------Deposit State---------------------*/
-    println(config.getString("state.label"))
+    logger.info(config.getString("state.label"))
     /*-----------------------------------------*/
 
     /*--------------DOI------------------------*/
-    println(config.getString("identifier.doi"))
+    logger.info(config.getString("identifier.doi"))
     /*-----------------------------------------*/
 
     /*-----------Description-------------------*/
-    println(config.getString("state.description"))
+    logger.info(config.getString("state.description"))
     /*-----------------------------------------*/
 
     /*--------DEPOSIT_UPDATE_TIMESTAMP---------*/
     /*-------??????????????????????????--------*/
     var sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
-    println(sdf.format(file2.lastModified()))
+    logger.info(sdf.format(file2.lastModified()))
     /*-----------------------------------------*/
 
-    /*--------Print the info of current deposit to csv file-----------*/
+
     csvPrinter.printRecord(config.getString("depositor.userId"), config.getString("bag-store.bag-id"), config.getString("state.label"), config.getString("identifier.doi"), "unknown", sdf.format(file2.lastModified()), config.getString("state.description"), nbrOfContinuedDeposits.toString)
-    /*-----------------------------------------*/
+    printer.printRecord(config.getString("depositor.userId"), config.getString("bag-store.bag-id"), config.getString("state.label"), config.getString("identifier.doi"), "unknown", sdf.format(file2.lastModified()), config.getString("state.description"), nbrOfContinuedDeposits.toString)
+
 
     /*--Update the nbr and space of deposits by the depositor 'mendeleydata'--*/
     if(config.getString("depositor.userId").equals("mendeleydata")){
@@ -347,147 +328,109 @@ class EasyDepositReportApp(configuration: Configuration) {
     /*------------------------------------------------------------------------*/
   }
 
-  csvPrinter.flush()
-
-  /*fileWriter.write("summary:\n")
-  fileWriter.write("Depositor: mendeley \n")
-  val currentTimestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
-  println(currentTimestamp)
-  fileWriter.write("Timestamp: " + currentTimestamp) //SHOULD THIS BE THE CURRENT TIMESTAMP???????
-  fileWriter.write("\n")
-  fileWriter.write("Number of deposits: " + DepositCounterMendeley)
-  fileWriter.write("\n")
-  fileWriter.write("Total space : " + TotalSpaceMendeley/1073741824 + "GB" )
-  fileWriter.write("\n")
-  fileWriter.write("Total space : " + TotalSpaceMendeley + "bytes" )
-  fileWriter.write("\n")
-  fileWriter.write("\n")
-  fileWriter.write("Per state : ")
-  fileWriter.write("\n")
-  fileWriter.write("DRAFT : " + nbrDraft + "(" + spaceDraft/1048576  + "M)" + "(" + spaceDraft  + "bytes)")
-  fileWriter.write("\n")
-  fileWriter.write("INVALID : " + nbrInvalid + "(" + spaceInvalid/1048576  + "M)" + "(" + spaceInvalid + "bytes)" )
-  fileWriter.write("\n")
-  fileWriter.write("FINALIZING : " + nbrFinalizing + "(" + spaceFinalizing/1048576  + "M)"+ "(" + spaceFinalizing + "bytes)" )
-  fileWriter.write("\n")
-  fileWriter.write("SUBMITTED : " + nbrSubmitted + "(" + spaceSubmitted/1048576  + "M)"+ "(" + spaceSubmitted + "bytes)" )
-  fileWriter.write("\n")
-  fileWriter.write("ARCHIVED : " + nbrArchived + "(" + spaceArchived/1048576  + "M)" + "(" + spaceArchived + "bytes)")
-  fileWriter.write("\n")
-  fileWriter.write("REJECTED : " + nbrRejected + "(" + spaceRejected/1048576  + "M)" + "(" + spaceRejected + "bytes)")
-  fileWriter.write("\n")
-  fileWriter.write("FAILED : " + nbrFailed + "(" + spaceFailed/1048576  + "M)" + "(" + spaceFailed + "bytes)")
-  fileWriter.write("\n")
-
-
-  fileWriter.flush() */
-
-
-
-    println(csvFormat.format())
-
-
-
-
 
 
 
 
       fileWriter.write("summary:\n")
 
-      println("summary:")
-
       fileWriter.write("Depositor: mendeley \n")
-
-      println("Depositor: mendeley")
 
       val currentTimestamp = new Timestamp(Calendar.getInstance.getTime.getTime)
 
       fileWriter.write("Timestamp: " + currentTimestamp) //SHOULD THIS BE THE CURRENT TIMESTAMP???????
       fileWriter.write("\n")
 
-      println("Timestamp: " + currentTimestamp)
-
       fileWriter.write("Number of deposits: " + DepositCounterMendeley)
       fileWriter.write("\n")
 
-      println("Number of deposits: " + DepositCounterMendeley)
-
       fileWriter.write("Total space : " + TotalSpaceMendeley / 1073741824 + "GB")
       fileWriter.write("\n")
-
-      println("Total space : " + TotalSpaceMendeley / 1073741824 + "GB")
-      //println("\n")
 
       fileWriter.write("Total space : " + TotalSpaceMendeley + "bytes")
       fileWriter.write("\n")
       fileWriter.write("\n")
 
-      println("Total space : " + TotalSpaceMendeley + "bytes")
-      println("\n")
-      //println("\n")
-
       fileWriter.write("Per state : ")
       fileWriter.write("\n")
-
-      println("Per state : ")
-      //println("\n")
 
       fileWriter.write("DRAFT : " + nbrDraft + "(" + spaceDraft / 1048576 + "M)" + "(" + spaceDraft + "bytes)")
       fileWriter.write("\n")
 
-      println("DRAFT : " + nbrDraft + "(" + spaceDraft / 1048576 + "M)" + "(" + spaceDraft + "bytes)")
-      //println("\n")
-
       fileWriter.write("INVALID : " + nbrInvalid + "(" + spaceInvalid / 1048576 + "M)" + "(" + spaceInvalid + "bytes)")
       fileWriter.write("\n")
-
-      println("INVALID : " + nbrInvalid + "(" + spaceInvalid / 1048576 + "M)" + "(" + spaceInvalid + "bytes)")
-      //println("\n")
 
       fileWriter.write("FINALIZING : " + nbrFinalizing + "(" + spaceFinalizing / 1048576 + "M)" + "(" + spaceFinalizing + "bytes)")
       fileWriter.write("\n")
 
-      println("FINALIZING : " + nbrFinalizing + "(" + spaceFinalizing / 1048576 + "M)" + "(" + spaceFinalizing + "bytes)")
-      //println("\n")
-
       fileWriter.write("SUBMITTED : " + nbrSubmitted + "(" + spaceSubmitted / 1048576 + "M)" + "(" + spaceSubmitted + "bytes)")
       fileWriter.write("\n")
-
-      println("SUBMITTED : " + nbrSubmitted + "(" + spaceSubmitted / 1048576 + "M)" + "(" + spaceSubmitted + "bytes)")
-      //println("\n")
 
       fileWriter.write("ARCHIVED : " + nbrArchived + "(" + spaceArchived / 1048576 + "M)" + "(" + spaceArchived + "bytes)")
       fileWriter.write("\n")
 
-      println("ARCHIVED : " + nbrArchived + "(" + spaceArchived / 1048576 + "M)" + "(" + spaceArchived + "bytes)")
-      //println("summary:\n")
-
       fileWriter.write("REJECTED : " + nbrRejected + "(" + spaceRejected / 1048576 + "M)" + "(" + spaceRejected + "bytes)")
       fileWriter.write("\n")
-
-      println("REJECTED : " + nbrRejected + "(" + spaceRejected / 1048576 + "M)" + "(" + spaceRejected + "bytes)")
-      //println("\n")
 
       fileWriter.write("FAILED : " + nbrFailed + "(" + spaceFailed / 1048576 + "M)" + "(" + spaceFailed + "bytes)")
       fileWriter.write("\n")
 
-      println("FAILED : " + nbrFailed + "(" + spaceFailed / 1048576 + "M)" + "(" + spaceFailed + "bytes)")
-      //println("\n")
-
-
-
-   fileWriter.flush()
-
-  def createFullReport(depositor: Option[String] = None): Try[String] = {
-    Try { "full report" }
-  }
 
   def createSummaryReport(depositor: Option[String] = None): Try[String] = {
+
+    println("summary:")
+
+    println("Depositor: mendeley")
+
+    println("Timestamp: " + currentTimestamp) //SHOULD THIS BE THE CURRENT TIMESTAMP???????
+
+    println("Number of deposits: " + DepositCounterMendeley)
+
+    println("Total space : " + TotalSpaceMendeley / 1073741824 + "GB")
+
+    println("Total space : " + TotalSpaceMendeley + "bytes")
+    println("\n")
+
+    println("Per state : ")
+
+    println("DRAFT : " + nbrDraft + "(" + spaceDraft / 1048576 + "M)" + "(" + spaceDraft + "bytes)")
+
+    println("INVALID : " + nbrInvalid + "(" + spaceInvalid / 1048576 + "M)" + "(" + spaceInvalid + "bytes)")
+
+    println("FINALIZING : " + nbrFinalizing + "(" + spaceFinalizing / 1048576 + "M)" + "(" + spaceFinalizing + "bytes)")
+
+    println("SUBMITTED : " + nbrSubmitted + "(" + spaceSubmitted / 1048576 + "M)" + "(" + spaceSubmitted + "bytes)")
+
+    println("ARCHIVED : " + nbrArchived + "(" + spaceArchived / 1048576 + "M)" + "(" + spaceArchived + "bytes)")
+
+    println("REJECTED : " + nbrRejected + "(" + spaceRejected / 1048576 + "M)" + "(" + spaceRejected + "bytes)")
+
+    println("FAILED : " + nbrFailed + "(" + spaceFailed / 1048576 + "M)" + "(" + spaceFailed + "bytes)")
+
     Try {"summary report"}
   }
 
-  def readTextFile(filename: String): Try[List[String]] = {
+
+  def createFullReport(depositor: Option[String] = None): Try[String] = {
+      //val reader = new FileReader("./data/mendeleyReport2.csv")
+      //val parser = new CSVParser(reader, CSVFormat.RFC4180)
+      //val listt = parser.getRecords
+      //println(listt)
+
+      System.out.print(printer)
+      System.out.print(out.toString)
+
+      Try { "full report" }
+  }
+
+  csvPrinter.flush()
+
+  logger.info(csvFormat.format())
+
+  fileWriter.flush()
+
+
+  /*def readTextFile(filename: String): Try[List[String]] = {
     Try{Source.fromFile(filename).getLines.toList}
   }
 
@@ -496,7 +439,7 @@ class EasyDepositReportApp(configuration: Configuration) {
   readTextFile(filename) match {
     case Success(lines) => lines.foreach(println)
     case Failure(f) => println(f)
-  }
+  }*/
 
 
 }

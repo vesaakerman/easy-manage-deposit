@@ -23,7 +23,7 @@ import org.apache.commons.csv._
 
 import scala.io.Source
 import scala.language.reflectiveCalls
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
@@ -80,7 +80,7 @@ object Command extends App with DebugEnhancedLogging {
    //   Try { "Unknown command" }
 
   //}
-  def readTextFile(filename: String): Try[List[String]] = {
+  /*def readTextFile(filename: String): Try[List[String]] = {
     Try{Source.fromFile(filename).getLines.toList}
   }
 
@@ -94,7 +94,7 @@ object Command extends App with DebugEnhancedLogging {
     case Failure(f) => println(f)
   }
 
-  /*val filename2 = "./mendeleyReport2.csv"
+  val filename2 = "./mendeleyReport2.csv"
   readCsvFile(filename2) match {
     case Success(lines) => ??????????????
     case Failure(f) => println(f)
