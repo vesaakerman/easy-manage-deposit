@@ -15,14 +15,15 @@
  */
 package nl.knaw.dans.easy.report
 
-import java.io.FileReader
+import java.io.{File, FileReader}
 
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-
-import scala.language.reflectiveCalls
-import scala.util.Try
 import org.apache.commons.csv._
+
+import scala.io.Source
+import scala.language.reflectiveCalls
+import scala.util.{Failure, Success, Try}
 
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
@@ -32,24 +33,82 @@ object Command extends App with DebugEnhancedLogging {
     verify()
   }
   val app = new EasyDepositReportApp(configuration)
+  //val app2 = new EasyDepositReportApp2(configuration)
 
-  val in = new FileReader("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox/0168583c-0f4a-4691-a136-371f147aa14d/deposit.properties")
+  /* ------------- List of subdirectories in easy-ingest-flow-inbox -------------------- */
+  /*def getListOfSubDirectories(directoryName: String): Array[String] = {
+    (new File(directoryName))
+      .listFiles
+      .filter(_.isDirectory)
+      .map(_.getName)
+  }
+  val dirs = getListOfSubDirectories("./data/easy-ingest-flow-inbox")*/
+  //val dirs = getListOfSubDirectories("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox")
+  /* ------------------------------------------------------------------------------------ */
+
+  //val in = new FileReader("./data/easy-ingest-flow-inbox/ ")
+
+  //for (i <- dirs) {
+  //  val in = new FileReader("./data/easy-ingest-flow-inbox/" + i + "/deposit.properties")
+  //}
 
   val result: Try[FeedBackMessage] = commandLine.subcommand match {
     case Some(full @ commandLine.fullCmd) =>
       app.createFullReport()
+      Try {"full report"}
 
     case Some(summary @ commandLine.summaryCmd) =>
-      app.createSummaryReport()
-      //Try { "command" }
+       app.createSummaryReport()
+       Try {"summary report"}
 
-
-    case _ => throw new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")
+    case _ => throw new IllegalArgumentException(s"Unknown command: ${commandLine.subcommand}")
       Try { "Unknown command" }
 
   }
 
+
+  //val result2: Try[FeedBackMessage] = commandLine.subcommand match {
+      //case Some(full @ commandLine.fullCmd) =>
+      // app2.createFullReport()
+      // Try {"full report"}
+
+      //case Some(summary @ commandLine.summaryCmd) =>
+      //app2.createSummaryReport()
+      //Try {"summary report"}
+
+   // case _ => throw new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")
+   //   Try { "Unknown command" }
+
+  //}
+  def readTextFile(filename: String): Try[List[String]] = {
+    Try{Source.fromFile(filename).getLines.toList}
+  }
+
+  def readCsvFile(filename2: String): Try[Unit] = {
+    Try{Source.fromFile(filename2).getLines.map(_.split(","))}
+  }
+
+  val filename = "./mendeleyReport2_Summary.txt"
+  readTextFile(filename) match {
+    case Success(lines) => lines.foreach(println)
+    case Failure(f) => println(f)
+  }
+
+  /*val filename2 = "./mendeleyReport2.csv"
+  readCsvFile(filename2) match {
+    case Success(lines) => ??????????????
+    case Failure(f) => println(f)
+  }*/
+
+  //Console.println(result)
+  //Console.println(app.createFullReport())
+
   result.map(msg => Console.err.println(s"OK: $msg")).doIfFailure {
     case t => Console.err.println(s"ERROR: ${ t.getMessage }")
   }
+
+  //result2.map(msg => Console.err.println(s"OK: $msg")).doIfFailure {
+  //  case t => Console.err.println(s"ERROR: ${ t.getMessage }")
+  // }
+
 }

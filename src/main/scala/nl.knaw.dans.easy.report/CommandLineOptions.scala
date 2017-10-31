@@ -46,7 +46,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   addSubcommand(fullCmd)
 
   val summaryCmd: Subcommand = new Subcommand("summary") {
-
+    val depositor = trailArg[String]("depositor")
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(summaryCmd)
