@@ -39,28 +39,42 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |
        |Options:
        |""".stripMargin)
-  val fullCmd: Subcommand = new Subcommand("full") {
-    //val depositor = trailArg[String]("depositor")
+  val fullCmd: Subcommand = new Subcommand("fullS") {
+    //val depositor = trailArg[String]("easy-sword2")
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(fullCmd)
 
-  val summaryCmd: Subcommand = new Subcommand("summary") {
+  val fullCmd2: Subcommand = new Subcommand("fullI") {
+    //val depositor = trailArg[String]("easy-ingest-flow-inbox")
+    footer(SUBCOMMAND_SEPARATOR)
+  }
+  addSubcommand(fullCmd2)
+
+  val fullCmd3: Subcommand = new Subcommand("full") {
+    //val depositor = trailArg[String]("easy-ingest-flow-inbox")
+    footer(SUBCOMMAND_SEPARATOR)
+  }
+  addSubcommand(fullCmd3)
+
+  val summaryCmd: Subcommand = new Subcommand("summaryS") {
     //val depositor = trailArg[String]("depositor")
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(summaryCmd)
 
+  val summaryCmd2: Subcommand = new Subcommand("summaryI") {
+    //val depositor = trailArg[String]("depositor")
+    footer(SUBCOMMAND_SEPARATOR)
+  }
+  addSubcommand(summaryCmd2)
+
+  val summaryCmd3: Subcommand = new Subcommand("summary") {
+    //val depositor = trailArg[String]("depositor")
+    footer(SUBCOMMAND_SEPARATOR)
+  }
+  addSubcommand(summaryCmd3)
+
   footer("")
-
-  //class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
-  //  val apples = opt[Int](required = true)
-  //  val bananas = opt[Int]()
-  //  val name = trailArg[String]()
-  //  verify()
-  //}
-
-  //val conf = new Conf(args)  // Note: This line also works for "object Main extends App"
-  //println("apples are: " + conf.apples())
 
 }

@@ -23,7 +23,7 @@ import org.apache.commons.csv._
 
 import scala.io.Source
 import scala.language.reflectiveCalls
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
@@ -33,82 +33,66 @@ object Command extends App with DebugEnhancedLogging {
     verify()
   }
   val app = new EasyDepositReportApp(configuration)
-  //val app2 = new EasyDepositReportApp2(configuration)
-
-  /* ------------- List of subdirectories in easy-ingest-flow-inbox -------------------- */
-  /*def getListOfSubDirectories(directoryName: String): Array[String] = {
-    (new File(directoryName))
-      .listFiles
-      .filter(_.isDirectory)
-      .map(_.getName)
-  }
-  val dirs = getListOfSubDirectories("./data/easy-ingest-flow-inbox")*/
-  //val dirs = getListOfSubDirectories("/Users/gulcinermis/git/service/easy/easy-deposit-report/data/easy-ingest-flow-inbox")
-  /* ------------------------------------------------------------------------------------ */
-
-  //val in = new FileReader("./data/easy-ingest-flow-inbox/ ")
-
-  //for (i <- dirs) {
-  //  val in = new FileReader("./data/easy-ingest-flow-inbox/" + i + "/deposit.properties")
-  //}
 
   val result: Try[FeedBackMessage] = commandLine.subcommand match {
-    case Some(full @ commandLine.fullCmd) =>
+    case Some(fullS @ commandLine.fullCmd) =>
+      app.createFullReportSword2()
+      Try {"full report easy-sword2"} match {
+        case Failure(_) => Try{"failure: Full report easy-sword2"}
+        case Success(_) => Try{"success: Full report easy-sword2"}
+      }
+    case Some(fullI @ commandLine.fullCmd2) =>
+      app.createFullReportEasyIngestFlowInbox()
+      Try {"full report easy-ingest-flow-inbox"} match {
+        case Failure(_) => Try{"failure: Full report easy-ingest-flow-inbox"}
+        case Success(_) => Try{"success: Full report easy-ingest-flow-inbox"}
+      }
+    case Some(full @ commandLine.fullCmd3) =>
       app.createFullReport()
-      Try {"full report"}
+      Try {"full report"} match {
+        case Failure(_) => Try{"failure: Full report easy-ingest-flow-inbox + easy-sword2"}
+        case Success(_) => Try{"success: Full report easy-ingest-flow + easy-sword2"}
+      }
 
-    case Some(summary @ commandLine.summaryCmd) =>
+    case Some(summaryS @ commandLine.summaryCmd) =>
+      app.createSummaryReportSword2()
+      Try {"summary report easy-sword2"} match {
+        case Failure(_) => Try{"failure: Summary report easy-sword2"}
+        case Success(_) => Try{"success: Summary report easy-sword2"}
+      }
+    case Some(summaryI @ commandLine.summaryCmd2) =>
+      app.createSummaryReportEasyIngestFlowInbox()
+      Try {"summary report easy-ingest-flow-inbox"} match {
+        case Failure(_) => Try{"failure: Summary report easy-ingest-flow-inbox"}
+        case Success(_) => Try{"success: Summary report easy-ingest-flow-inbox"}
+      }
+    case Some(summary @ commandLine.summaryCmd3) =>
        app.createSummaryReport()
-       Try {"summary report"}
+       Try {"summary report"} match {
+         case Failure(_) => Try {"failure: Summary report easy-ingest-flow-inbox + easy-sword2"}
+         case Success(_) => Try {"success: Summary report easy-ingest-flow-inbox + easy-sword2"}
+       }
 
-    case _ => throw new IllegalArgumentException(s"Unknown command: ${commandLine.subcommand}")
-      Try { "Unknown command" }
-
+    case _ => //throw new IllegalArgumentException(s"Unknown command: ${commandLine.subcommand}")
+         //Try {commandLine.subcommand.toString} match {
+         //  case Failure(_) => Try{"failure: ?"}
+         //  case Success(_) => Try{"unknown command"}
+         //}
+         Try {""} match {
+            case Failure(_) => Try{"failure: ?"}
+            case Success(_) => Try{"unknown command"}
+         }
   }
 
 
-  //val result2: Try[FeedBackMessage] = commandLine.subcommand match {
-      //case Some(full @ commandLine.fullCmd) =>
-      // app2.createFullReport()
-      // Try {"full report"}
-
-      //case Some(summary @ commandLine.summaryCmd) =>
-      //app2.createSummaryReport()
-      //Try {"summary report"}
-
-   // case _ => throw new IllegalArgumentException(s"Unknown command: ${ commandLine.subcommand }")
-   //   Try { "Unknown command" }
-
-  //}
-  /*def readTextFile(filename: String): Try[List[String]] = {
-    Try{Source.fromFile(filename).getLines.toList}
-  }
-
-  def readCsvFile(filename2: String): Try[Unit] = {
-    Try{Source.fromFile(filename2).getLines.map(_.split(","))}
-  }
-
-  val filename = "./mendeleyReport2_Summary.txt"
-  readTextFile(filename) match {
-    case Success(lines) => lines.foreach(println)
-    case Failure(f) => println(f)
-  }
-
-  val filename2 = "./mendeleyReport2.csv"
-  readCsvFile(filename2) match {
-    case Success(lines) => ??????????????
-    case Failure(f) => println(f)
-  }*/
 
   //Console.println(result)
   //Console.println(app.createFullReport())
 
   result.map(msg => Console.err.println(s"OK: $msg")).doIfFailure {
-    case t => Console.err.println(s"ERROR: ${ t.getMessage }")
+   case t => Console.err.println(s"ERROR: ${ t.getMessage }")
   }
 
-  //result2.map(msg => Console.err.println(s"OK: $msg")).doIfFailure {
-  //  case t => Console.err.println(s"ERROR: ${ t.getMessage }")
-  // }
+
 
 }
