@@ -39,6 +39,7 @@ import org.apache.commons.csv.CSVParser
 import org.apache.commons.csv.CSVRecord
 import java.io.FileReader
 import java.io.IOException
+import scala.collection.Map
 
 
 
@@ -102,71 +103,162 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
   var spaceRejected:Long = 0
   var nbrFailed: Int = 0
   var spaceFailed:Long = 0
+  //var nbrDepositorsMap:Map[String, Int] = scala.collection.mutable.Map("default" -> 0)
+  var nbrDepositorsMap:Map[String, Int]= Map("default" -> 0)
+  var map: Map[Int,Int]= Map(0 -> 0)
+  for ((k,v) <- map) printf("key: %d, value: %d\n", k, v)
+  var nbrDraftsMap:Map[String, Int] = Map("default" -> 0)
+  var nbrSubmittedMap:Map[String, Int] = Map("default" -> 0)
+  var nbrArchivedMap:Map[String, Int] = Map("default" -> 0)
+  var nbrFinalizingMap:Map[String, Int] = Map("default" -> 0)
+  var nbrRejectedMap:Map[String, Int] = Map("default" -> 0)
+  var nbrInvalidMap:Map[String, Int] = Map("default" -> 0)
+  var nbrFailedMap:Map[String, Int] = Map("default" -> 0)
+
+  var spaceDepositorsMap:Map[String, Long]= Map("default" -> 0)
+  var spaceDraftsMap:Map[String, Long] = Map("default" -> 0)
+  var spaceSubmittedMap:Map[String, Long] = Map("default" -> 0)
+  var spaceArchivedMap:Map[String, Long] = Map("default" -> 0)
+  var spaceFinalizingMap:Map[String, Long] = Map("default" -> 0)
+  var spaceRejectedMap:Map[String, Long] = Map("default" -> 0)
+  var spaceInvalidMap:Map[String, Long] = Map("default" -> 0)
+  var spaceFailedMap:Map[String, Long] = Map("default" -> 0)
 
 
-
-  def function1(dir: String): String = {
-    dirPath = getPath(dir)
-    dirList = getListOfSubDirectories(getPath(dir).toString).toList
-    dirList.foreach { i =>
-      pathname = dirPath.toString + "/" + i + "/deposit.properties"
-      pathname2 = dirPath.toString + "/" + i
-      fileList = getListOfFiles(pathname2)
-      nbrOfContinued = 0
-      fileList.foreach {j =>
-        if(j.getName.contains("zip")){
-          nbrOfContinued = nbrOfContinued + 1
+    def function1(dir: String): String = {
+      dirPath = getPath(dir)
+      dirList = getListOfSubDirectories(getPath(dir).toString).toList
+      dirList.foreach { i =>
+        pathname = dirPath.toString + "/" + i + "/deposit.properties"
+        pathname2 = dirPath.toString + "/" + i
+        fileList = getListOfFiles(pathname2)
+        nbrOfContinued = 0
+        fileList.foreach { j =>
+          if (j.getName.contains("zip")) {
+            nbrOfContinued = nbrOfContinued + 1
+          }
         }
-      }
-      val config = new PropertiesConfiguration(pathname)
-      file2 = new File(pathname2)
+        val config = new PropertiesConfiguration(pathname)
+        file2 = new File(pathname2)
 
-      /*--------DEPOSIT_UPDATE_TIMESTAMP---------*/
-      /*-------??????????????????????????--------*/
-      var sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
-      logger.info(sdf.format(file2.lastModified()))
-      /*-----------------------------------------*/
+        /*--------DEPOSIT_UPDATE_TIMESTAMP---------*/
+        /*-------??????????????????????????--------*/
+        var sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
+        logger.info(sdf.format(file2.lastModified()))
+        /*-----------------------------------------*/
 
-      printer.printRecord(config.getString("depositor.userId"), config.getString("bag-store.bag-id"), config.getString("state.label"), config.getString("identifier.doi"), "unknown", sdf.format(file2.lastModified()), config.getString("state.description"), nbrOfContinued.toString)
+        printer.printRecord(config.getString("depositor.userId"), config.getString("bag-store.bag-id"), config.getString("state.label"), config.getString("identifier.doi"), "unknown", sdf.format(file2.lastModified()), config.getString("state.description"), nbrOfContinued.toString)
 
-      if(config.getString("depositor.userId").equals("mendeleydata")){
-        DepositCounterMendeley = DepositCounterMendeley + 1
-        TotalSpaceMendeley = TotalSpaceMendeley + file2.length()
-      }
-      if(config.getString("state.label").equals("DRAFT")) {
-        nbrDraft = nbrDraft + 1
-        spaceDraft = spaceDraft + file2.length()
-      }
-      if(config.getString("state.label").equals("INVALID")) {
-        nbrInvalid = nbrInvalid + 1
-        spaceInvalid = spaceInvalid + file2.length()
-      }
-      if(config.getString("state.label").equals("FINALIZING")) {
-        nbrFinalizing= nbrFinalizing + 1
-        spaceFinalizing = spaceFinalizing + file2.length()
-      }
-      if(config.getString("state.label").equals("SUBMITTED")) {
-        nbrSubmitted = nbrSubmitted + 1
-        spaceSubmitted = spaceSubmitted + file2.length()
-      }
-      if(config.getString("state.label").equals("ARCHIVED")) {
-        nbrArchived = nbrArchived + 1
-        spaceArchived = spaceArchived + file2.length()
-      }
-      if(config.getString("state.label").equals("REJECTED")) {
-        nbrRejected = nbrRejected + 1
-        spaceRejected = spaceRejected + file2.length()
-      }
-      if(config.getString("state.label").equals("FAILED")) {
-        nbrFailed = nbrFailed + 1
-        spaceFailed = spaceFailed + file2.length()
+        if (nbrDepositorsMap.contains(config.getString("depositor.userId"))) {
+          for ((k, v) <- nbrDepositorsMap) {
+            if (k.contentEquals(config.getString("depositor.userId"))) {
+              var new_v = (k, v)._2 + 1
+              nbrDepositorsMap = nbrDepositorsMap - k
+              nbrDepositorsMap = nbrDepositorsMap + (k -> new_v)
+            }
+          }
+        }
+        if (nbrDepositorsMap.contains(config.getString("depositor.userId")).equals(false)) {
+           nbrDepositorsMap = nbrDepositorsMap + (config.getString("depositor.userId") -> 1)
+        }
+        if (nbrDepositorsMap.contains("default")) {
+           nbrDepositorsMap = nbrDepositorsMap - ("default")
+        }
+
+        //println(nbrDepositorsMap)
+
+        if (spaceDepositorsMap.contains(config.getString("depositor.userId"))) {
+          for ((k, v) <- spaceDepositorsMap) {
+            if (k.contentEquals(config.getString("depositor.userId"))) {
+              var new_v = (k, v)._2 + file2.length()
+              spaceDepositorsMap = spaceDepositorsMap - k
+              spaceDepositorsMap = spaceDepositorsMap + (k -> new_v)
+            }
+          }
+        }
+        if (spaceDepositorsMap.contains(config.getString("depositor.userId")).equals(false)) {
+          spaceDepositorsMap = spaceDepositorsMap + (config.getString("depositor.userId") -> file2.length())
+        }
+        if (spaceDepositorsMap.contains("default")) {
+          spaceDepositorsMap = spaceDepositorsMap - ("default")
+        }
+
+        //println(spaceDepositorsMap)
+
+
+        def CountStateLabels(stateLabel: String, mapIns : Map[String, Int]): Map[String, Int] = {
+          var map: Map[String, Int] = mapIns
+          if (config.getString("state.label").equals(stateLabel)) {
+            //var nbrDraftsMap: Map[String, Int] = Map(config.getString("depositor.userId") -> 1)
+            if (map.contains(config.getString("depositor.userId"))) {
+              for ((k, v) <- map) {
+                if (k.contentEquals(config.getString("depositor.userId"))) {
+                  var new_v = (k, v)._2 + 1
+                  map = map - k
+                  map = map + (k -> new_v)
+                }
+              }
+            }
+            if (map.contains(config.getString("depositor.userId")).equals(false)) {
+                map = map + (config.getString("depositor.userId") -> 1)
+            }
+            if (map.contains("default")) {
+                map = map - ("default")
+            }
+          }
+          map
+        }
+
+        def SpaceStateLabels(stateLabel: String, mapIns : Map[String, Long]): Map[String, Long] = {
+          var map: Map[String, Long] = mapIns
+          if (config.getString("state.label").equals(stateLabel)) {
+            //var nbrDraftsMap: Map[String, Int] = Map(config.getString("depositor.userId") -> 1)
+            if (map.contains(config.getString("depositor.userId"))) {
+              for ((k, v) <- map) {
+                if (k.contentEquals(config.getString("depositor.userId"))) {
+                  var new_v = (k, v)._2 + file2.length()
+                  map = map - k
+                  map = map + (k -> new_v)
+                }
+              }
+            }
+            if (map.contains(config.getString("depositor.userId")).equals(false)) {
+              map = map + (config.getString("depositor.userId") -> file2.length())
+            }
+            if (map.contains("default")) {
+              map = map - ("default")
+            }
+          }
+          map
+        }
+
+
+
+        nbrDraftsMap = CountStateLabels("DRAFT", nbrDraftsMap)
+        nbrInvalidMap = CountStateLabels("INVALID", nbrInvalidMap)
+        nbrFinalizingMap = CountStateLabels("FINALIZING", nbrFinalizingMap)
+        nbrSubmittedMap = CountStateLabels("SUBMITTED", nbrSubmittedMap)
+        nbrArchivedMap = CountStateLabels("ARCHIVED", nbrArchivedMap)
+        nbrRejectedMap = CountStateLabels("REJECTED", nbrRejectedMap)
+        nbrFailedMap = CountStateLabels("FAILED", nbrFailedMap)
+
+        spaceDraftsMap = SpaceStateLabels("DRAFT", spaceDraftsMap)
+        spaceInvalidMap = SpaceStateLabels("INVALID", spaceInvalidMap)
+        spaceFinalizingMap = SpaceStateLabels("FINALIZING", spaceFinalizingMap)
+        spaceSubmittedMap = SpaceStateLabels("SUBMITTED", spaceSubmittedMap)
+        spaceArchivedMap = SpaceStateLabels("ARCHIVED", spaceArchivedMap)
+        spaceRejectedMap = SpaceStateLabels("REJECTED", spaceRejectedMap)
+        spaceFailedMap = SpaceStateLabels("FAILED", spaceFailedMap)
+
       }
 
+      printer.flush()
+      printer.close()
+      out.toString
     }
-    printer.flush()
-    printer.close()
-    out.toString
-  }
+
+
+
 
 
 
@@ -175,96 +267,223 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
       val currentTimestamp = new Timestamp(Calendar.getInstance.getTime.getTime)//SHOULD THIS BE THE CURRENT TIMESTAMP???????
       function1("easy-ingest-flow-inbox")
       function1("easy-sword2")
+    for ((k,v) <- nbrDepositorsMap ) {
       System.out.print("summary:\n")
-      System.out.print("Depositor: mendeley\n")
+      System.out.print("Depositor: " + k)
+      System.out.print("\n")
       System.out.print("Timestamp: " + currentTimestamp) //SHOULD THIS BE THE CURRENT TIMESTAMP???????
       System.out.print("\n")
-      System.out.print("Number of deposits: " + DepositCounterMendeley)
+      System.out.print("Number of deposits: " + v)
       System.out.print("\n")
-      System.out.print("Total space : " + TotalSpaceMendeley / 1073741824 + "GB")
+      System.out.print("Total space : " + spaceDepositorsMap.apply(k) / 1073741824 + " GB")
       System.out.print("\n")
-      System.out.print("Total space : " + TotalSpaceMendeley + "bytes")
+      System.out.print("Total space : " + spaceDepositorsMap.apply(k) + " bytes")
       System.out.print("\n")
       System.out.print("\n")
       System.out.print("Per state :\n")
-      System.out.print("DRAFT : " + nbrDraft + "(" + spaceDraft / 1048576 + "M)" + "(" + spaceDraft + "bytes)")
+
+      if(nbrDraftsMap.contains(k)) {
+        System.out.print("DRAFT : " + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
+        System.out.print("\n")
+      }
+      if(nbrDraftsMap.contains(k).equals(false)) {
+        System.out.print("DRAFT : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("\n")
+      }
+      if(nbrInvalidMap.contains(k)) {
+        System.out.print("INVALID : " + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
+        System.out.print("\n")
+      }
+      if(nbrInvalidMap.contains(k).equals(false)) {
+        System.out.print("INVALID : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("\n")
+      }
+      if(nbrFinalizingMap.contains(k)) {
+        System.out.print("FINALIZING : " + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
+        System.out.print("\n")
+      }else{
+        System.out.print("FINALIZING : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("\n")
+      }
+      if(nbrSubmittedMap.contains(k)) {
+        System.out.print("SUBMITTED : " + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
+        System.out.print("\n")
+      }else{
+        System.out.print("SUBMITTED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("\n")
+      }
+      if(nbrArchivedMap.contains(k)) {
+        System.out.print("ARCHIVED : " + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
+        System.out.print("\n")
+      }else{
+        System.out.print("ARCHIVED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("\n")
+      }
+      if(nbrRejectedMap.contains(k)) {
+        System.out.print("REJECTED : " + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
+        System.out.print("\n")
+      }else{
+        System.out.print("REJECTED: " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("\n")
+      }
+      if(nbrFailedMap.contains(k)) {
+        System.out.print("FAILED : " + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
+        System.out.print("\n")
+      }else{
+        System.out.print("FAILED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("\n")
+      }
       System.out.print("\n")
-      System.out.print("INVALID : " + nbrInvalid + "(" + spaceInvalid / 1048576 + "M)" + "(" + spaceInvalid + "bytes)")
-      System.out.print("\n")
-      System.out.print("FINALIZING : " + nbrFinalizing + "(" + spaceFinalizing / 1048576 + "M)" + "(" + spaceFinalizing + "bytes)")
-      System.out.print("\n")
-      System.out.print("SUBMITTED : " + nbrSubmitted + "(" + spaceSubmitted / 1048576 + "M)" + "(" + spaceSubmitted + "bytes)")
-      System.out.print("\n")
-      System.out.print("ARCHIVED : " + nbrArchived + "(" + spaceArchived / 1048576 + "M)" + "(" + spaceArchived + "bytes)")
-      System.out.print("\n")
-      System.out.print("REJECTED : " + nbrRejected + "(" + spaceRejected / 1048576 + "M)" + "(" + spaceRejected + "bytes)")
-      System.out.print("\n")
-      System.out.print("FAILED : " + nbrFailed + "(" + spaceFailed / 1048576 + "M)" + "(" + spaceFailed + "bytes)")
-      System.out.print("\n")
+
+    }
       Try {"summary report"}
   }
 
   def createSummaryReportSword2(depositor: Option[String] = None): Try[String] = {
       val currentTimestamp = new Timestamp(Calendar.getInstance.getTime.getTime)//SHOULD THIS BE THE CURRENT TIMESTAMP???????
       function1("easy-sword2")
-      System.out.print("summary:\n")
-      System.out.print("Depositor: mendeley\n")
-      System.out.print("Timestamp: " + currentTimestamp) //SHOULD THIS BE THE CURRENT TIMESTAMP???????
-      System.out.print("\n")
-      System.out.print("Number of deposits: " + DepositCounterMendeley)
-      System.out.print("\n")
-      System.out.print("Total space : " + TotalSpaceMendeley / 1073741824 + "GB")
-      System.out.print("\n")
-      System.out.print("Total space : " + TotalSpaceMendeley + "bytes")
-      System.out.print("\n")
-      System.out.print("\n")
-      System.out.print("Per state :\n")
-      System.out.print("DRAFT : " + nbrDraft + "(" + spaceDraft / 1048576 + "M)" + "(" + spaceDraft + "bytes)")
-      System.out.print("\n")
-      System.out.print("INVALID : " + nbrInvalid + "(" + spaceInvalid / 1048576 + "M)" + "(" + spaceInvalid + "bytes)")
-      System.out.print("\n")
-      System.out.print("FINALIZING : " + nbrFinalizing + "(" + spaceFinalizing / 1048576 + "M)" + "(" + spaceFinalizing + "bytes)")
-      System.out.print("\n")
-      System.out.print("SUBMITTED : " + nbrSubmitted + "(" + spaceSubmitted / 1048576 + "M)" + "(" + spaceSubmitted + "bytes)")
-      System.out.print("\n")
-      System.out.print("ARCHIVED : " + nbrArchived + "(" + spaceArchived / 1048576 + "M)" + "(" + spaceArchived + "bytes)")
-      System.out.print("\n")
-      System.out.print("REJECTED : " + nbrRejected + "(" + spaceRejected / 1048576 + "M)" + "(" + spaceRejected + "bytes)")
-      System.out.print("\n")
-      System.out.print("FAILED : " + nbrFailed + "(" + spaceFailed / 1048576 + "M)" + "(" + spaceFailed + "bytes)")
-      System.out.print("\n")
+      for ((k,v) <- nbrDepositorsMap ) {
+        System.out.print("summary:\n")
+        System.out.print("Depositor: " + k)
+        System.out.print("\n")
+        System.out.print("Timestamp: " + currentTimestamp) //SHOULD THIS BE THE CURRENT TIMESTAMP???????
+        System.out.print("\n")
+        System.out.print("Number of deposits: " + v)
+        System.out.print("\n")
+        System.out.print("Total space : " + spaceDepositorsMap.apply(k) / 1073741824 + " GB")
+        System.out.print("\n")
+        System.out.print("Total space : " + spaceDepositorsMap.apply(k) + " bytes")
+        System.out.print("\n")
+        System.out.print("\n")
+        System.out.print("Per state :\n")
+
+        if(nbrDraftsMap.contains(k)) {
+           System.out.print("DRAFT : " + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
+            System.out.print("\n")
+        }
+        if(nbrDraftsMap.contains(k).equals(false)) {
+          System.out.print("DRAFT : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("\n")
+        }
+        if(nbrInvalidMap.contains(k)) {
+          System.out.print("INVALID : " + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
+          System.out.print("\n")
+        }
+        if(nbrInvalidMap.contains(k).equals(false)) {
+          System.out.print("INVALID : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("\n")
+        }
+        if(nbrFinalizingMap.contains(k)) {
+          System.out.print("FINALIZING : " + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
+          System.out.print("\n")
+        }else{
+          System.out.print("FINALIZING : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("\n")
+        }
+        if(nbrSubmittedMap.contains(k)) {
+          System.out.print("SUBMITTED : " + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
+          System.out.print("\n")
+        }else{
+          System.out.print("SUBMITTED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("\n")
+        }
+        if(nbrArchivedMap.contains(k)) {
+          System.out.print("ARCHIVED : " + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
+          System.out.print("\n")
+        }else{
+          System.out.print("ARCHIVED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("\n")
+        }
+        if(nbrRejectedMap.contains(k)) {
+          System.out.print("REJECTED : " + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
+          System.out.print("\n")
+        }else{
+          System.out.print("REJECTED: " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("\n")
+        }
+        if(nbrFailedMap.contains(k)) {
+          System.out.print("FAILED : " + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
+          System.out.print("\n")
+        }else{
+          System.out.print("FAILED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("\n")
+        }
+        System.out.print("\n")
+      }
       Try {"summary report easy-sword2"}
   }
 
   def createSummaryReportEasyIngestFlowInbox(depositor: Option[String] = None): Try[String] = {
       val currentTimestamp = new Timestamp(Calendar.getInstance.getTime.getTime)//SHOULD THIS BE THE CURRENT TIMESTAMP???????
       function1("easy-ingest-flow-inbox")
-      System.out.print("summary:\n")
-      System.out.print("Depositor: mendeley\n")
-      System.out.print("Timestamp: " + currentTimestamp) //SHOULD THIS BE THE CURRENT TIMESTAMP???????
-      System.out.print("\n")
-      System.out.print("Number of deposits: " + DepositCounterMendeley)
-      System.out.print("\n")
-      System.out.print("Total space : " + TotalSpaceMendeley / 1073741824 + "GB")
-      System.out.print("\n")
-      System.out.print("Total space : " + TotalSpaceMendeley + "bytes")
-      System.out.print("\n")
-      System.out.print("\n")
-      System.out.print("Per state :\n")
-      System.out.print("DRAFT : " + nbrDraft + "(" + spaceDraft / 1048576 + "M)" + "(" + spaceDraft + "bytes)")
-      System.out.print("\n")
-      System.out.print("INVALID : " + nbrInvalid + "(" + spaceInvalid / 1048576 + "M)" + "(" + spaceInvalid + "bytes)")
-      System.out.print("\n")
-      System.out.print("FINALIZING : " + nbrFinalizing + "(" + spaceFinalizing / 1048576 + "M)" + "(" + spaceFinalizing + "bytes)")
-      System.out.print("\n")
-      System.out.print("SUBMITTED : " + nbrSubmitted + "(" + spaceSubmitted / 1048576 + "M)" + "(" + spaceSubmitted + "bytes)")
-      System.out.print("\n")
-      System.out.print("ARCHIVED : " + nbrArchived + "(" + spaceArchived / 1048576 + "M)" + "(" + spaceArchived + "bytes)")
-      System.out.print("\n")
-      System.out.print("REJECTED : " + nbrRejected + "(" + spaceRejected / 1048576 + "M)" + "(" + spaceRejected + "bytes)")
-      System.out.print("\n")
-      System.out.print("FAILED : " + nbrFailed + "(" + spaceFailed / 1048576 + "M)" + "(" + spaceFailed + "bytes)")
-      System.out.print("\n")
+      for ((k,v) <- nbrDepositorsMap ) {
+         System.out.print("summary:\n")
+         System.out.print("Depositor: " + k)
+         System.out.print("\n")
+         System.out.print("Timestamp: " + currentTimestamp) //SHOULD THIS BE THE CURRENT TIMESTAMP???????
+         System.out.print("\n")
+         System.out.print("Number of deposits: " + v)
+         System.out.print("\n")
+         System.out.print("Total space : " + spaceDepositorsMap.apply(k) / 1073741824 + " GB")
+         System.out.print("\n")
+         System.out.print("Total space : " + spaceDepositorsMap.apply(k) + " bytes")
+         System.out.print("\n")
+         System.out.print("\n")
+         System.out.print("Per state :\n")
+
+         if(nbrDraftsMap.contains(k)) {
+           System.out.print("DRAFT : " + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
+           System.out.print("\n")
+         }
+         if(nbrDraftsMap.contains(k).equals(false)) {
+           System.out.print("DRAFT : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("\n")
+         }
+         if(nbrInvalidMap.contains(k)) {
+           System.out.print("INVALID : " + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
+           System.out.print("\n")
+         }
+         if(nbrInvalidMap.contains(k).equals(false)) {
+           System.out.print("INVALID : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("\n")
+         }
+         if(nbrFinalizingMap.contains(k)) {
+           System.out.print("FINALIZING : " + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
+           System.out.print("\n")
+         }else{
+           System.out.print("FINALIZING : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("\n")
+         }
+         if(nbrSubmittedMap.contains(k)) {
+           System.out.print("SUBMITTED : " + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
+           System.out.print("\n")
+         }else{
+           System.out.print("SUBMITTED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("\n")
+         }
+         if(nbrArchivedMap.contains(k)) {
+           System.out.print("ARCHIVED : " + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
+           System.out.print("\n")
+         }else{
+           System.out.print("ARCHIVED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("\n")
+         }
+         if(nbrRejectedMap.contains(k)) {
+           System.out.print("REJECTED : " + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
+           System.out.print("\n")
+         }else{
+           System.out.print("REJECTED: " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("\n")
+         }
+         if(nbrFailedMap.contains(k)) {
+           System.out.print("FAILED : " + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
+           System.out.print("\n")
+         }else{
+           System.out.print("FAILED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("\n")
+         }
+         System.out.print("\n")
+      }
       Try {"summary report easy-ingest-flow-inbox"}
   }
 
@@ -276,7 +495,8 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
 
   def createFullReportSword2(depositor: Option[String] = None ): Try[String] = {
       System.out.print(function1("easy-sword2"))
-      Try { "full report easy-sword2" }
+
+    Try { "full report easy-sword2" }
   }
 
   def createFullReportEasyIngestFlowInbox(depositor: Option[String] = None ): Try[String] = {
