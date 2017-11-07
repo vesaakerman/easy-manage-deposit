@@ -72,41 +72,15 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
     Paths.get(configuration.properties.getString(dir))
   }
 
-  //private val IngestFlowInbox = getPath("easy-ingest-flow-inbox")
-  //private val sword2 = getPath("easy-sword2")
-
-  //private val dirs = getListOfSubDirectories(IngestFlowInbox.toString)
-  //private val dirsSword = getListOfSubDirectories(sword2.toString)
-
-
   var nbrOfContinued: Int = 0
   var pathname: String = "default"
   var pathname2: String = "default"
   var dirPath : Path = null
   var dirList : List[String] = null
   var fileList : List[File] = null
-  var k: Int = 1
   var file2: File =  null
-  var DepositCounterMendeley: Int = 0
-  var TotalSpaceMendeley:Long = 0
-  var nbrDraft: Int= 0
-  var spaceDraft:Long = 0
-  var nbrInvalid: Int = 0
-  var spaceInvalid:Long = 0
-  var nbrFinalizing: Int = 0
-  var spaceFinalizing:Long = 0
-  var nbrSubmitted: Int = 0
-  var spaceSubmitted:Long = 0
-  var nbrArchived: Int = 0
-  var spaceArchived:Long = 0
-  var nbrRejected: Int = 0
-  var spaceRejected:Long = 0
-  var nbrFailed: Int = 0
-  var spaceFailed:Long = 0
-  //var nbrDepositorsMap:Map[String, Int] = scala.collection.mutable.Map("default" -> 0)
+
   var nbrDepositorsMap:Map[String, Int]= Map("default" -> 0)
-  var map: Map[Int,Int]= Map(0 -> 0)
-  for ((k,v) <- map) printf("key: %d, value: %d\n", k, v)
   var nbrDraftsMap:Map[String, Int] = Map("default" -> 0)
   var nbrSubmittedMap:Map[String, Int] = Map("default" -> 0)
   var nbrArchivedMap:Map[String, Int] = Map("default" -> 0)
@@ -189,7 +163,6 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
         def CountStateLabels(stateLabel: String, mapIns : Map[String, Int]): Map[String, Int] = {
           var map: Map[String, Int] = mapIns
           if (config.getString("state.label").equals(stateLabel)) {
-            //var nbrDraftsMap: Map[String, Int] = Map(config.getString("depositor.userId") -> 1)
             if (map.contains(config.getString("depositor.userId"))) {
               for ((k, v) <- map) {
                 if (k.contentEquals(config.getString("depositor.userId"))) {
@@ -212,7 +185,6 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
         def SpaceStateLabels(stateLabel: String, mapIns : Map[String, Long]): Map[String, Long] = {
           var map: Map[String, Long] = mapIns
           if (config.getString("state.label").equals(stateLabel)) {
-            //var nbrDraftsMap: Map[String, Int] = Map(config.getString("depositor.userId") -> 1)
             if (map.contains(config.getString("depositor.userId"))) {
               for ((k, v) <- map) {
                 if (k.contentEquals(config.getString("depositor.userId"))) {
@@ -283,54 +255,54 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
       System.out.print("Per state :\n")
 
       if(nbrDraftsMap.contains(k)) {
-        System.out.print("DRAFT : " + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
+        System.out.print("DRAFT: " + "\t" + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
         System.out.print("\n")
       }
       if(nbrDraftsMap.contains(k).equals(false)) {
-        System.out.print("DRAFT : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("DRAFT: " + "\t"  + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
         System.out.print("\n")
       }
       if(nbrInvalidMap.contains(k)) {
-        System.out.print("INVALID : " + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
+        System.out.print("INVALID: "+ "\t"  + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
         System.out.print("\n")
       }
       if(nbrInvalidMap.contains(k).equals(false)) {
-        System.out.print("INVALID : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("INVALID: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
         System.out.print("\n")
       }
       if(nbrFinalizingMap.contains(k)) {
-        System.out.print("FINALIZING : " + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
+        System.out.print("FINALIZING: "+ "\t"  + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
         System.out.print("\n")
       }else{
-        System.out.print("FINALIZING : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("FINALIZING: "+ "\t"  + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
         System.out.print("\n")
       }
       if(nbrSubmittedMap.contains(k)) {
-        System.out.print("SUBMITTED : " + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
+        System.out.print("SUBMITTED: " +  "\t" + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
         System.out.print("\n")
       }else{
-        System.out.print("SUBMITTED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("SUBMITTED: " + "\t"  + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
         System.out.print("\n")
       }
       if(nbrArchivedMap.contains(k)) {
-        System.out.print("ARCHIVED : " + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
+        System.out.print("ARCHIVED: " + "\t" + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
         System.out.print("\n")
       }else{
-        System.out.print("ARCHIVED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("ARCHIVED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
         System.out.print("\n")
       }
       if(nbrRejectedMap.contains(k)) {
-        System.out.print("REJECTED : " + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
+        System.out.print("REJECTED: " + "\t" + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
         System.out.print("\n")
       }else{
-        System.out.print("REJECTED: " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("REJECTED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
         System.out.print("\n")
       }
       if(nbrFailedMap.contains(k)) {
-        System.out.print("FAILED : " + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
+        System.out.print("FAILED: " + "\t" + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
         System.out.print("\n")
       }else{
-        System.out.print("FAILED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+        System.out.print("FAILED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
         System.out.print("\n")
       }
       System.out.print("\n")
@@ -358,54 +330,54 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
         System.out.print("Per state :\n")
 
         if(nbrDraftsMap.contains(k)) {
-           System.out.print("DRAFT : " + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
+           System.out.print("DRAFT:  "  +  "\t" + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
             System.out.print("\n")
         }
         if(nbrDraftsMap.contains(k).equals(false)) {
-          System.out.print("DRAFT : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("DRAFT:   "  +  "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
           System.out.print("\n")
         }
         if(nbrInvalidMap.contains(k)) {
-          System.out.print("INVALID : " + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
+          System.out.print("INVALID: " + "\t" + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
           System.out.print("\n")
         }
         if(nbrInvalidMap.contains(k).equals(false)) {
-          System.out.print("INVALID : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("INVALID: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
           System.out.print("\n")
         }
         if(nbrFinalizingMap.contains(k)) {
-          System.out.print("FINALIZING : " + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
+          System.out.print("FINALIZING: " + "\t" + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
           System.out.print("\n")
         }else{
-          System.out.print("FINALIZING : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("FINALIZING: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
           System.out.print("\n")
         }
         if(nbrSubmittedMap.contains(k)) {
-          System.out.print("SUBMITTED : " + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
+          System.out.print("SUBMITTED: " + "\t" + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
           System.out.print("\n")
         }else{
-          System.out.print("SUBMITTED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("SUBMITTED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
           System.out.print("\n")
         }
         if(nbrArchivedMap.contains(k)) {
-          System.out.print("ARCHIVED : " + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
+          System.out.print("ARCHIVED: " + "\t" + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
           System.out.print("\n")
         }else{
-          System.out.print("ARCHIVED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("ARCHIVED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
           System.out.print("\n")
         }
         if(nbrRejectedMap.contains(k)) {
-          System.out.print("REJECTED : " + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
+          System.out.print("REJECTED: " + "\t" + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
           System.out.print("\n")
         }else{
-          System.out.print("REJECTED: " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("REJECTED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
           System.out.print("\n")
         }
         if(nbrFailedMap.contains(k)) {
-          System.out.print("FAILED : " + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
+          System.out.print("FAILED: " + "\t" + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
           System.out.print("\n")
         }else{
-          System.out.print("FAILED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+          System.out.print("FAILED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
           System.out.print("\n")
         }
         System.out.print("\n")
@@ -432,54 +404,54 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
          System.out.print("Per state :\n")
 
          if(nbrDraftsMap.contains(k)) {
-           System.out.print("DRAFT : " + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
+           System.out.print("DRAFT:   " + "\t" + nbrDraftsMap.apply(k) + "(" + spaceDraftsMap.apply(k)/1048576 + "M)" + "(" + spaceDraftsMap.apply(k) + "bytes)")
            System.out.print("\n")
          }
          if(nbrDraftsMap.contains(k).equals(false)) {
-           System.out.print("DRAFT : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("DRAFT: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
            System.out.print("\n")
          }
          if(nbrInvalidMap.contains(k)) {
-           System.out.print("INVALID : " + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
+           System.out.print("INVALID: "  + "\t" + nbrInvalidMap.apply(k) + "(" + spaceInvalidMap.apply(k)/1048576 + "M)" + "(" + spaceInvalidMap.apply(k) + "bytes)")
            System.out.print("\n")
          }
          if(nbrInvalidMap.contains(k).equals(false)) {
-           System.out.print("INVALID : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("INVALID: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
            System.out.print("\n")
          }
          if(nbrFinalizingMap.contains(k)) {
-           System.out.print("FINALIZING : " + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
+           System.out.print("FINALIZING: " + "\t" + nbrFinalizingMap.apply(k) + "(" + spaceFinalizingMap.apply(k)/1048576 + "M)" + "(" + spaceFinalizingMap.apply(k) + "bytes)")
            System.out.print("\n")
          }else{
-           System.out.print("FINALIZING : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("FINALIZING: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
            System.out.print("\n")
          }
          if(nbrSubmittedMap.contains(k)) {
-           System.out.print("SUBMITTED : " + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
+           System.out.print("SUBMITTED: " + "\t" + nbrSubmittedMap.apply(k) + "(" + spaceSubmittedMap.apply(k)/1048576 + "M)" + "(" + spaceSubmittedMap.apply(k) + "bytes)")
            System.out.print("\n")
          }else{
-           System.out.print("SUBMITTED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("SUBMITTED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
            System.out.print("\n")
          }
          if(nbrArchivedMap.contains(k)) {
-           System.out.print("ARCHIVED : " + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
+           System.out.print("ARCHIVED: " + "\t" + nbrArchivedMap.apply(k) + "(" + spaceArchivedMap.apply(k)/1048576 + "M)" + "(" + spaceArchivedMap.apply(k) + "bytes)")
            System.out.print("\n")
          }else{
-           System.out.print("ARCHIVED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("ARCHIVED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
            System.out.print("\n")
          }
          if(nbrRejectedMap.contains(k)) {
-           System.out.print("REJECTED : " + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
+           System.out.print("REJECTED: " + "\t" + nbrRejectedMap.apply(k) + "(" + spaceRejectedMap.apply(k)/1048576 + "M)" + "(" + spaceRejectedMap.apply(k) + "bytes)")
            System.out.print("\n")
          }else{
-           System.out.print("REJECTED: " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("REJECTED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
            System.out.print("\n")
          }
          if(nbrFailedMap.contains(k)) {
-           System.out.print("FAILED : " + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
+           System.out.print("FAILED: " + "\t" + nbrFailedMap.apply(k) + "(" + spaceFailedMap.apply(k)/1048576 + "M)" + "(" + spaceFailedMap.apply(k) + "bytes)")
            System.out.print("\n")
          }else{
-           System.out.print("FAILED : " + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
+           System.out.print("FAILED: " + "\t" + 0 + "(" + 0 + "M)" + "(" + 0 + "bytes)")
            System.out.print("\n")
          }
          System.out.print("\n")
