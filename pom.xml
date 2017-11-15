@@ -170,11 +170,10 @@
                                 </goals>
                             </execution>
                         </executions>
-                        <configuration>
-                            <group>Applications/Archiving</group>
-                            <requires combine.children="append">
-                                <require>jsvc</require>
-                            </requires>
+                        <configuration combine.children="override">
+                            <group>Application/Archiving</group>
+                            <defaultUsername>root</defaultUsername>
+                            <defaultGroupname>root</defaultGroupname>
                         </configuration>
                     </plugin>
                 </plugins>

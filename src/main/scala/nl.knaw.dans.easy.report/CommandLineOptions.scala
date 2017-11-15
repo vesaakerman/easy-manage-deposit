@@ -15,7 +15,9 @@
  */
 package nl.knaw.dans.easy.report
 
-import org.rogach.scallop.{ScallopConf, Subcommand}
+import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand }
+
+import scala.language.reflectiveCalls
 
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
   appendDefaultToDescription = true
@@ -25,8 +27,9 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val description: String = s"""Creates report about the deposits in the deposit area."""
   val synopsis: String =
     s"""
-       |  $printedName (synopsis of command line parameters)
-       |  $printedName (... possibly multiple lines for subcommands)""".stripMargin
+       |  $printedName (full <depositor>)
+       |  $printedName (summary <depositor>)
+       |  $printedName  """.stripMargin
 
   version(s"$printedName v${ configuration.version }")
   banner(
@@ -38,43 +41,31 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |$synopsis
        |
        |Options:
+       |
        |""".stripMargin)
-  val fullCmd: Subcommand = new Subcommand("fullS") {
-    //val depositor = trailArg[String]("easy-sword2")
-    footer(SUBCOMMAND_SEPARATOR)
-  }
-  addSubcommand(fullCmd)
-
-  val fullCmd2: Subcommand = new Subcommand("fullI") {
-    //val depositor = trailArg[String]("easy-ingest-flow-inbox")
-    footer(SUBCOMMAND_SEPARATOR)
-  }
-  addSubcommand(fullCmd2)
 
   val fullCmd3: Subcommand = new Subcommand("full") {
-    //val depositor = trailArg[String]("easy-ingest-flow-inbox")
+
+    val depos: ScallopOption[List[String]] = trailArg[List[String]]("depositor")
+
     footer(SUBCOMMAND_SEPARATOR)
+
   }
   addSubcommand(fullCmd3)
 
-  val summaryCmd: Subcommand = new Subcommand("summaryS") {
-    //val depositor = trailArg[String]("depositor")
-    footer(SUBCOMMAND_SEPARATOR)
-  }
-  addSubcommand(summaryCmd)
-
-  val summaryCmd2: Subcommand = new Subcommand("summaryI") {
-    //val depositor = trailArg[String]("depositor")
-    footer(SUBCOMMAND_SEPARATOR)
-  }
-  addSubcommand(summaryCmd2)
 
   val summaryCmd3: Subcommand = new Subcommand("summary") {
-    //val depositor = trailArg[String]("depositor")
+
+    val depos: ScallopOption[List[String]] = trailArg[List[String]]("depositor")
+
     footer(SUBCOMMAND_SEPARATOR)
+
   }
   addSubcommand(summaryCmd3)
+
+  verify()
 
   footer("")
 
 }
+

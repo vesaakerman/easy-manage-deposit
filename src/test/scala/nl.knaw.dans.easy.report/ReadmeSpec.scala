@@ -19,12 +19,11 @@ import java.io.{ByteArrayOutputStream, File}
 
 import org.scalatest._
 
-@Ignore
 class ReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
   System.setProperty("app.home", "src/main/assembly/dist") // Use the default settings in this test
 
   private val clo = new CommandLineOptions(Array[String](), Configuration()) {
-    // avoids System.exit() in case of invalid arguments or "--help"
+    //avoids System.exit() in case of invalid arguments or "--help"
     override def verify(): Unit = {}
   }
 
