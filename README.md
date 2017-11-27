@@ -6,11 +6,11 @@ easy-deposit-report
 SYNOPSIS
 --------
    
-     easy-deposit-report (full <depositor>)
-     easy-deposit-report (summary <depositor>)
+     easy-deposit-report full <depositor>
+     easy-deposit-report summary <depositor>
      easy-deposit-report
      
-OPTIONS
+ARGUMENTS
 --------
    
      Options:
@@ -23,14 +23,14 @@ OPTIONS
          --help   Show help message
          
       trailing arguments:
-       depositor (required)
+       depositor (not required)
      ---
    
      Subcommand: summary
          --help   Show help message
          
       trailing arguments:
-       depositor (required)
+       depositor (not required) 
      ---
     
      
@@ -42,7 +42,10 @@ Creates report about the deposits in the deposit area.
 EXAMPLES
 --------
 
-     easy-deposit-report -o value
+     easy-deposit-report full mendeleydata
+     easy-deposit-report summary mendeleydata
+     easy-deposit-report full dryad
+     easy-deposit-report summary dryad
 
 
 INSTALLATION AND CONFIGURATION

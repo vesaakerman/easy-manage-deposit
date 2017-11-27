@@ -22,7 +22,6 @@ import scala.language.reflectiveCalls
 import scala.util.{ Failure, Success, Try }
 
 
-
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
 
@@ -35,45 +34,62 @@ object Command extends App with DebugEnhancedLogging {
 
   val result: Try[FeedBackMessage] = commandLine.subcommand match {
 
-    case  Some(full @ commandLine.fullCmd3 )=>
+    case Some(full @ commandLine.fullCmd) =>
 
-            val depositorId: Option[List[String]] = commandLine.fullCmd3.trailArg[List[String]]("depositor").toOption
-            /* Notes for depositorId variable:
-            println("depositorId: " + depositorId) // Example: depositorId = Some(List(mendeleydata))
-            println("depositorId.get: " + depositorId.get) // Example: depositorId.get = List(mendeleydata)
-            println("depositorId.get.head: " + depositorId.get.head) // Example: depositorId.get.head = mendeleydata
-            */
+      val depositorId: Option[List[String]] = commandLine.fullCmd.trailArg[List[String]]("depositor").toOption
+      var matchArg: String = "optionIsEmpty"
 
-            app.createFullReport(depositorId.get.head)
+      //app.tryGetPath("easy-ingest-flow-inbox")
+      //app.tryGetPath("easy-sword2")
 
-            Try {"full report " + depositorId.get.head.toString} match {
-                case Failure(_) => Try{"failure: Full report easy-ingest-flow-inbox + easy-sword2 " + depositorId.get.head.toString}
-                case Success(_) => Try{"success: Full report easy-ingest-flow + easy-sword2 " + depositorId.get.head.toString}
-            }
+      if (depositorId.isDefined) {
+        app.createFullReport(depositorId.get.head)
+        matchArg = depositorId.get.head.toString
+      }
+      if (depositorId.isEmpty) {
+        app.createFullReport(matchArg.toString)
+      }
 
-    case  Some(summary @ commandLine.summaryCmd3 )=>
+      app.tryCreateFullReport("easy-ingest-flow-inbox", matchArg)
+      app.tryCreateFullReport("easy-sword2", matchArg)
 
-            val depositorId: Option[List[String]] = commandLine.summaryCmd3.trailArg[List[String]]("depositor").toOption
 
-            app.createSummaryReport(depositorId.get.head)
+      Try { "full report " + matchArg } match {
+        case Failure(_) => Try { "failure: Full report easy-ingest-flow-inbox + easy-sword2 " + matchArg }
+        case Success(_) => Try { "success: Full report easy-ingest-flow + easy-sword2 " + matchArg }
+      }
 
-            Try {"summary report " + depositorId.get.head.toString} match {
-                 case Failure(_) => Try{"failure: Summary report easy-ingest-flow-inbox + easy-sword2 " + depositorId.get.head.toString}
-                 case Success(_) => Try{"success: Summary report easy-ingest-flow + easy-sword2 " + depositorId.get.head.toString}
-            }
+
+    case Some(summary @ commandLine.summaryCmd) =>
+
+      val depositorId: Option[List[String]] = commandLine.summaryCmd.trailArg[List[String]]("depositor").toOption
+      var matchArg: String = "optionIsEmpty"
+
+      if (depositorId.isDefined) {
+        app.createSummaryReport(depositorId.get.head)
+        matchArg = depositorId.get.head.toString
+      }
+      if (depositorId.isEmpty) {
+        app.createSummaryReport(matchArg.toString)
+      }
+
+      Try { "summary report " + matchArg } match {
+        case Failure(_) => Try { "failure: Summary report easy-ingest-flow-inbox + easy-sword2 " + matchArg }
+        case Success(_) => Try { "success: Summary report easy-ingest-flow + easy-sword2 " + matchArg }
+      }
 
     case _ =>
-            Try {""} match {
-                 case Failure(_) => Try{"failure: ?"}
-                 case Success(_) => Try{"unknown command"}
-            }
+      Try { "" } match {
+        case Failure(_) => Try { "failure: ?" }
+        case Success(_) => Try { "unknown command" }
+      }
+
 
   }
 
   result.map(msg => Console.err.println(s"OK: $msg")).doIfFailure {
-   case t => Console.err.println(s"ERROR: ${ t.getMessage }")
+    case t => Console.err.println(s"ERROR: ${ t.getMessage }")
   }
-
 
 
 }

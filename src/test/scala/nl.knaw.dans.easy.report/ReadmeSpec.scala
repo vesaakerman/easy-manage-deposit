@@ -15,12 +15,12 @@
  */
 package nl.knaw.dans.easy.report
 
-import java.io.{ByteArrayOutputStream, File}
+import java.io.{ ByteArrayOutputStream, File }
 
 import org.scalatest._
 
 class ReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
-  System.setProperty("app.home", "src/main/assembly/dist") // Use the default settings in this test
+  System.setProperty("app.home", "src/main/assembly/dist") //Use the default settings in this test
 
   private val clo = new CommandLineOptions(Array[String](), Configuration()) {
     //avoids System.exit() in case of invalid arguments or "--help"
@@ -36,9 +36,9 @@ class ReadmeSpec extends FlatSpec with Matchers with CustomMatchers {
   }
 
   "options in help info" should "be part of README.md" in {
-    val lineSeparators = s"(${System.lineSeparator()})+"
-    val options = helpInfo.split(s"${lineSeparators}Options:$lineSeparators")(1)
-    options.trim.length shouldNot be (0)
+    val lineSeparators = s"(${ System.lineSeparator() })+"
+    val options = helpInfo.split(s"${ lineSeparators }Options:$lineSeparators")(1)
+    options.trim.length shouldNot be(0)
     new File("README.md") should containTrimmed(options)
   }
 
