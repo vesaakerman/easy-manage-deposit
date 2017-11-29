@@ -2,38 +2,50 @@ easy-deposit-report
 ===========
 [![Build Status](https://travis-ci.org/DANS-KNAW/easy-deposit-report.png?branch=master)](https://travis-ci.org/DANS-KNAW/easy-deposit-report)
 
-<!-- Remove this comment and extend the descriptions below -->
-
 
 SYNOPSIS
 --------
-
-    easy-deposit-report (synopsis of command line parameters)
-    easy-deposit-report (... possibly multiple lines for subcommands)
-
-
+   
+     easy-deposit-report full <depositor>
+     easy-deposit-report summary <depositor>
+     easy-deposit-report
+     
+ARGUMENTS
+--------
+   
+     Options:
+   
+     
+         --help      Show help message
+         --version   Show version of this program
+   
+     Subcommand: full
+         --help   Show help message
+         
+      trailing arguments:
+       depositor (not required)
+     ---
+   
+     Subcommand: summary
+         --help   Show help message
+         
+      trailing arguments:
+       depositor (not required) 
+     ---
+    
+     
 DESCRIPTION
 -----------
 
 Creates report about the deposits in the deposit area.
-
-
-ARGUMENTS
----------
-
-    Options:
-
-        --help      Show help message
-        --version   Show version of this program
-
-    Subcommand: run-service - Starts EASY Deposit Report as a daemon that services HTTP requests
-        --help   Show help message
-    ---
-
+     
 EXAMPLES
 --------
 
-    easy-deposit-report -o value
+     easy-deposit-report full mendeleydata
+     easy-deposit-report summary mendeleydata
+     easy-deposit-report full dryad
+     easy-deposit-report summary dryad
 
 
 INSTALLATION AND CONFIGURATION

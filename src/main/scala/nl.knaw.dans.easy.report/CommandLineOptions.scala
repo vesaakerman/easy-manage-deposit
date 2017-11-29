@@ -15,7 +15,9 @@
  */
 package nl.knaw.dans.easy.report
 
-import org.rogach.scallop.{ScallopConf, ScallopOption, Subcommand, singleArgConverter}
+import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand }
+
+import scala.language.reflectiveCalls
 
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
   appendDefaultToDescription = true
@@ -25,8 +27,9 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val description: String = s"""Creates report about the deposits in the deposit area."""
   val synopsis: String =
     s"""
-       |  $printedName (synopsis of command line parameters)
-       |  $printedName (... possibly multiple lines for subcommands)""".stripMargin
+       |  $printedName full <depositor>
+       |  $printedName summary <depositor>
+       |  $printedName  """.stripMargin
 
   version(s"$printedName v${ configuration.version }")
   banner(
@@ -38,18 +41,29 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |$synopsis
        |
        |Options:
+       |
        |""".stripMargin)
+
   val fullCmd: Subcommand = new Subcommand("full") {
-    val depositor = trailArg[String]("depositor")
+
+    val depos: ScallopOption[List[String]] = trailArg[List[String]]("depositor", required = false)
+
     footer(SUBCOMMAND_SEPARATOR)
+
   }
   addSubcommand(fullCmd)
 
+
   val summaryCmd: Subcommand = new Subcommand("summary") {
 
+    val depos: ScallopOption[List[String]] = trailArg[List[String]]("depositor", required = false)
+
     footer(SUBCOMMAND_SEPARATOR)
+
   }
   addSubcommand(summaryCmd)
 
   footer("")
+
 }
+

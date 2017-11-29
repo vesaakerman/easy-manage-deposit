@@ -17,7 +17,7 @@
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>nl.knaw.dans.shared</groupId>
         <artifactId>dans-scala-prototype</artifactId>
@@ -96,6 +96,10 @@
             <groupId>commons-daemon</groupId>
             <artifactId>commons-daemon</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>
@@ -166,11 +170,10 @@
                                 </goals>
                             </execution>
                         </executions>
-                        <configuration>
-                            <group>Applications/Archiving</group>
-                            <requires combine.children="append">
-                                <require>jsvc</require>
-                            </requires>
+                        <configuration combine.children="override">
+                            <group>Application/Archiving</group>
+                            <defaultUsername>root</defaultUsername>
+                            <defaultGroupname>root</defaultGroupname>
                         </configuration>
                     </plugin>
                 </plugins>
