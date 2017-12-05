@@ -6,9 +6,8 @@ easy-deposit-report
 SYNOPSIS
 --------
    
-     easy-deposit-report full <depositor>
-     easy-deposit-report summary <depositor>
-     easy-deposit-report
+     easy-deposit-report full [<depositor>]
+     easy-deposit-report summary [<depositor>]
      
 ARGUMENTS
 --------

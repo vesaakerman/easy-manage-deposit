@@ -15,9 +15,18 @@
  */
 package nl.knaw.dans.easy
 
+import java.nio.file.{ Files, Path }
+
+import resource._
+
+import scala.collection.JavaConverters._
 import scala.util.{ Failure, Success, Try }
 
 package object report {
+
+  type DepositId = String
+  type Deposits = Map[DepositId, Deposit]
+  type DepositorId = String
 
   implicit class TryExtensions2[T](val t: Try[T]) extends AnyVal {
     // TODO candidate for dans-scala-lib
@@ -28,5 +37,10 @@ package object report {
       }
     }
   }
-}
 
+  implicit class PathExtensions(val path: Path) extends AnyVal {
+    def list[T](f: Stream[Path] => T): T = {
+      managed(Files.list(path)).acquireAndGet(stream => f(stream.iterator().asScala.toStream))
+    }
+  }
+}
