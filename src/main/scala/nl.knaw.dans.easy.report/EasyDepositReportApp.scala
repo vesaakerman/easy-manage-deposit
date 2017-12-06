@@ -96,10 +96,10 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
 
   private def findDoi(identifiers: NodeSeq): Option[String] = {
     identifiers.find { id =>
-      id.attribute("http://www.w3.org/2001/XMLSchema-instance", "type").exists {
+      id.attribute(XML_NAMESPACE_XSI, "type").exists {
         case Seq(n) =>
           n.text.split(':') match {
-            case Array(pre, name) => id.getNamespace(pre) == "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
+            case Array(pre, name) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE
             case _ => false
           }
       }
