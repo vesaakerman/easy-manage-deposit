@@ -24,9 +24,12 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
+import resource.managed
 
+import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.Try
+import scala.xml.{ NodeSeq, XML }
 
 case class Deposit(depositId: DepositId,
                    doi: Option[String],
@@ -61,7 +64,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
         if (filterOnDepositor.forall(depositorId ==)) Some {
           depositId -> Deposit(
             depositId = depositId,
-            doi = Option(depositProperties.getString("identifier.doi")),
+            doi = getDoi(depositProperties, depositDirPath),
             depositorId,
             state = depositProperties.getString("state.label"),
             description = depositProperties.getString("state.description"),
@@ -73,6 +76,34 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
         else None
       }
       .toMap
+  }
+
+  private def getDoi(depositProperties: PropertiesConfiguration, depositDirPath: Path): Option[String] = {
+    Option(depositProperties.getString("identifier.doi")).orElse {
+      managed(Files.list(depositDirPath)).acquireAndGet { files =>
+        files.iterator().asScala.toStream.find(Files.isDirectory(_))
+          .flatMap { bagDir =>
+            val datasetXml = bagDir.resolve("metadata/dataset.xml")
+            if (Files.exists(datasetXml)) Try {
+              val docElement = XML.loadFile(bagDir.resolve("metadata/dataset.xml").toFile)
+              findDoi(docElement \\ "dcmiMetadata" \\ "identifier")
+            }.getOrElse(None)
+            else None
+          }
+      }
+    }
+  }
+
+  private def findDoi(identifiers: NodeSeq): Option[String] = {
+    identifiers.find { id =>
+      id.attribute("http://www.w3.org/2001/XMLSchema-instance", "type").exists {
+        case Seq(n) =>
+          n.text.split(':') match {
+            case Array(pre, name) => id.getNamespace(pre) == "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
+            case _ => false
+          }
+      }
+    }.map(_.text)
   }
 
   private def outputSummary(deposits: Deposits, depositor: Option[DepositorId] = None): Unit = {
