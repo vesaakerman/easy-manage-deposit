@@ -31,7 +31,6 @@ package object report {
   val XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance"
   val XML_NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
 
-
   implicit class TryExtensions2[T](val t: Try[T]) extends AnyVal {
     // TODO candidate for dans-scala-lib
     def unsafeGetOrThrow: T = {
