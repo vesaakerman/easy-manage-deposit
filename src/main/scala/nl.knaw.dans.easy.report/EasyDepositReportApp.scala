@@ -81,14 +81,14 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
   private def getDoi(depositProperties: PropertiesConfiguration, depositDirPath: Path): Option[String] = {
     Option(depositProperties.getString("identifier.doi")).orElse {
       managed(Files.list(depositDirPath)).acquireAndGet { files =>
-        files.iterator().asScala.toStream.find(Files.isDirectory(_))
-          .flatMap { bagDir =>
-            val datasetXml = bagDir.resolve("metadata/dataset.xml")
-            if (Files.exists(datasetXml)) Try {
-              val docElement = XML.loadFile(bagDir.resolve("metadata/dataset.xml").toFile)
+        files.iterator().asScala.toStream
+          .collectFirst { case bagDir if Files.isDirectory(bagDir) => bagDir.resolve("metadata/dataset.xml") }
+          .flatMap {
+            case datasetXml if Files.exists(datasetXml) => Try {
+              val docElement = XML.loadFile(datasetXml.toFile)
               findDoi(docElement \\ "dcmiMetadata" \\ "identifier")
             }.getOrElse(None)
-            else None
+            case _ => None
           }
       }
     }
@@ -99,7 +99,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
       id.attribute(XML_NAMESPACE_XSI, "type").exists {
         case Seq(n) =>
           n.text.split(':') match {
-            case Array(pre, name) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE
+            case Array(pre, _) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE
             case _ => false
           }
       }
