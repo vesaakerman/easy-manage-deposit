@@ -39,5 +39,9 @@ object Command extends App with DebugEnhancedLogging {
   }
 
   result.doIfSuccess(msg => Console.err.println(s"OK: $msg"))
-    .doIfFailure { case t => Console.err.println(s"ERROR: ${ t.getMessage }") }
+    .doIfFailure { case t =>
+      Console.err.println(s"ERROR: ${ t.getMessage }")
+      System.exit(1)
+    }
 }
+
