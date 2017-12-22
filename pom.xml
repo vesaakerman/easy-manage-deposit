@@ -177,6 +177,23 @@
                             <group>Application/Archiving</group>
                             <defaultUsername>root</defaultUsername>
                             <defaultGroupname>root</defaultGroupname>
+                            <requires combine.children="append">
+                                <require>mail</require>
+                            </requires>
+                            <mappings combine.children="append">
+                                <mapping>
+                                    <directory>/opt/${dans-provider-name}/${project.artifactId}/bin</directory>
+                                    <filemode>755</filemode>
+                                    <sources>
+                                        <source>
+                                            <location>src/main/assembly/dist/bin</location>
+                                            <includes>
+                                                <include>*.sh</include>
+                                            </includes>
+                                        </source>
+                                    </sources>
+                                </mapping>
+                            </mappings>
                         </configuration>
                     </plugin>
                 </plugins>
