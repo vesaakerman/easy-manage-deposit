@@ -101,7 +101,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
       id.attribute(XML_NAMESPACE_XSI, "type").exists {
         case Seq(n) =>
           n.text.split(':') match {
-            case Array(pre, _) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE
+            case Array(pre, suffix) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE && suffix == "DOI"
             case _ => false
           }
       }
