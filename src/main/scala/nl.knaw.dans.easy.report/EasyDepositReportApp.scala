@@ -36,6 +36,7 @@ case class Deposit(depositId: DepositId,
                    depositor: DepositorId,
                    state: String,
                    description: String,
+                   creationTimestamp: String,
                    numberOfContinuedDeposits: Int,
                    storageSpace: Long,
                    lastModified: FileTime)
@@ -68,6 +69,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
             depositorId,
             state = depositProperties.getString("state.label"),
             description = depositProperties.getString("state.description"),
+            creationTimestamp = depositProperties.getString("creation.timestamp"),
             depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
             storageSpace = FileUtils.sizeOfDirectory(depositDirPath.toFile),
             lastModified = Files.getLastModifiedTime(depositDirPath)
@@ -99,7 +101,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
       id.attribute(XML_NAMESPACE_XSI, "type").exists {
         case Seq(n) =>
           n.text.split(':') match {
-            case Array(pre, _) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE
+            case Array(pre, suffix) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE && suffix == "DOI"
             case _ => false
           }
       }
@@ -152,7 +154,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
         depositId,
         deposit.state,
         deposit.doi.getOrElse("n/a"),
-        "unknown",
+        deposit.creationTimestamp,
         sdf.format(deposit.lastModified.toMillis),
         deposit.description,
         deposit.numberOfContinuedDeposits.toString,
