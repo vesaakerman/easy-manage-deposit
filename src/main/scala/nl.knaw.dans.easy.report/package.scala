@@ -20,7 +20,6 @@ import java.nio.file.{ Files, Path }
 import resource._
 
 import scala.collection.JavaConverters._
-import scala.util.{ Failure, Success, Try }
 
 package object report {
 
@@ -30,16 +29,6 @@ package object report {
 
   val XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance"
   val XML_NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
-
-  implicit class TryExtensions2[T](val t: Try[T]) extends AnyVal {
-    // TODO candidate for dans-scala-lib
-    def unsafeGetOrThrow: T = {
-      t match {
-        case Success(value) => value
-        case Failure(throwable) => throw throwable
-      }
-    }
-  }
 
   implicit class PathExtensions(val path: Path) extends AnyVal {
     def list[T](f: Stream[Path] => T): T = {
