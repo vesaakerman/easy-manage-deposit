@@ -47,10 +47,10 @@ exit_if_failed() {
 }
 
 echo -n "Creating summary report for ${EASY_ACCOUNT:-all depositors}..."
-/opt/dans.knaw.nl/easy-deposit-report/bin/easy-deposit-report summary $EASY_ACCOUNT > $REPORT_SUMMARY
+/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit summary $EASY_ACCOUNT > $REPORT_SUMMARY
 exit_if_failed "summary report failed"
 echo -n "Creating full report for ${EASY_ACCOUNT:-all depositors}..."
-/opt/dans.knaw.nl/easy-deposit-report/bin/easy-deposit-report full $EASY_ACCOUNT > $REPORT_FULL
+/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit full $EASY_ACCOUNT > $REPORT_FULL
 exit_if_failed "full report failed"
 
 echo "Status of EASY deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \

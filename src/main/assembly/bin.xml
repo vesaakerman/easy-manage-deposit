@@ -40,9 +40,9 @@
             <directory>${project.basedir}/src/main/assembly/dist/bin</directory>
             <outputDirectory>bin</outputDirectory>
             <includes>
-                <include>easy-deposit-report</include>
-                <include>easy-deposit-report-service-start</include>
-                <include>easy-deposit-report-initd.sh</include>
+                <include>easy-manage-deposit</include>
+                <include>easy-manage-deposit-service-start</include>
+                <include>easy-manage-deposit-initd.sh</include>
             </includes>
             <fileMode>0755</fileMode>
         </fileSet>

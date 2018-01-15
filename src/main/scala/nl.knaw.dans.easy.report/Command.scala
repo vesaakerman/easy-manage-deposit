@@ -29,7 +29,7 @@ object Command extends App with DebugEnhancedLogging {
 
   val configuration = Configuration(Paths.get(System.getProperty("app.home")))
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
-  val app = new EasyDepositReportApp(configuration)
+  val app = new EasyManageDepositApp(configuration)
   val result: Try[FeedBackMessage] = commandLine.subcommand match {
     case Some(full @ commandLine.fullCmd) =>
       app.createFullReport(full.depositor.toOption)

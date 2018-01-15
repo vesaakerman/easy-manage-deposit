@@ -22,7 +22,7 @@ import scala.language.reflectiveCalls
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
   appendDefaultToDescription = true
   editBuilder(_.setHelpWidth(110))
-  printedName = "easy-deposit-report"
+  printedName = "easy-manage-deposit"
   private val SUBCOMMAND_SEPARATOR = "---\n"
   val description: String = s"""Creates report about the deposits in the deposit area."""
   val synopsis: String =

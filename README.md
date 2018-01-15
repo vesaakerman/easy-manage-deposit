@@ -1,13 +1,13 @@
-easy-deposit-report
+easy-manage-deposit
 ===========
-[![Build Status](https://travis-ci.org/DANS-KNAW/easy-deposit-report.png?branch=master)](https://travis-ci.org/DANS-KNAW/easy-deposit-report)
+[![Build Status](https://travis-ci.org/DANS-KNAW/easy-manage-deposit.png?branch=master)](https://travis-ci.org/DANS-KNAW/easy-manage-deposit)
 
 
 SYNOPSIS
 --------
    
-     easy-deposit-report full [<depositor>]
-     easy-deposit-report summary [<depositor>]
+     easy-manage-deposit full [<depositor>]
+     easy-manage-deposit summary [<depositor>]
      
 ARGUMENTS
 --------
@@ -41,10 +41,10 @@ Creates report about the deposits in the deposit area.
 EXAMPLES
 --------
 
-     easy-deposit-report full mendeleydata
-     easy-deposit-report summary mendeleydata
-     easy-deposit-report full dryad
-     easy-deposit-report summary dryad
+     easy-manage-deposit full mendeleydata
+     easy-manage-deposit summary mendeleydata
+     easy-manage-deposit full dryad
+     easy-manage-deposit summary dryad
 
 
 INSTALLATION AND CONFIGURATION
@@ -52,11 +52,11 @@ INSTALLATION AND CONFIGURATION
 
 
 1. Unzip the tarball to a directory of your choice, typically `/usr/local/`
-2. A new directory called easy-deposit-report-<version> will be created
+2. A new directory called easy-manage-deposit-<version> will be created
 3. Add the command script to your `PATH` environment variable by creating a symbolic link to it from a directory that is
    on the path, e.g. 
    
-        ln -s /usr/local/easy-deposit-report-<version>/bin/easy-deposit-report /usr/bin
+        ln -s /usr/local/easy-manage-deposit-<version>/bin/easy-manage-deposit /usr/bin
 
 
 
@@ -74,6 +74,6 @@ Prerequisites:
 
 Steps:
 
-        git clone https://github.com/DANS-KNAW/easy-deposit-report.git
-        cd easy-deposit-report
+        git clone https://github.com/DANS-KNAW/easy-manage-deposit.git
+        cd easy-manage-deposit
         mvn install

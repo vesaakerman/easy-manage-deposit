@@ -24,17 +24,17 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>nl.knaw.dans.easy</groupId>
-    <artifactId>easy-deposit-report</artifactId>
+    <artifactId>easy-manage-deposit</artifactId>
     <version>1.0.1-SNAPSHOT</version>
-    <name>EASY Deposit Report</name>
-    <url>https://github.com/DANS-KNAW/easy-deposit-report</url>
+    <name>EASY Manage Deposit</name>
+    <url>https://github.com/DANS-KNAW/easy-manage-deposit</url>
     <description>Creates report about the deposits in the deposit area.</description>
     <inceptionYear>2017</inceptionYear>
     <properties>
         <main-class>nl.knaw.dans.easy.report.Command</main-class>
     </properties>
     <scm>
-        <developerConnection>scm:git:https://github.com/DANS-KNAW/easy-deposit-report</developerConnection>
+        <developerConnection>scm:git:https://github.com/DANS-KNAW/easy-manage-deposit</developerConnection>
         <tag>HEAD</tag>
     </scm>
     <dependencies>

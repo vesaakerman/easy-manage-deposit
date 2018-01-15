@@ -41,7 +41,7 @@ case class Deposit(depositId: DepositId,
                    storageSpace: Long,
                    lastModified: FileTime)
 
-class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLogging {
+class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging {
   private val KB = 1024L
   private val MB = 1024L * KB
   private val GB = 1024L * MB
