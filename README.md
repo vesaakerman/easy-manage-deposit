@@ -39,7 +39,7 @@ ARGUMENTS
 DESCRIPTION
 -----------
 
-Creates report about the deposits in the deposit area.
+Manages the deposits in the deposit area.
      
 EXAMPLES
 --------

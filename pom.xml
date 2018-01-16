@@ -16,7 +16,8 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>nl.knaw.dans.shared</groupId>
         <artifactId>dans-scala-prototype</artifactId>
@@ -28,7 +29,7 @@
     <version>1.0.1-SNAPSHOT</version>
     <name>EASY Manage Deposit</name>
     <url>https://github.com/DANS-KNAW/easy-manage-deposit</url>
-    <description>Creates report about the deposits in the deposit area.</description>
+    <description>Manages the deposits in the deposit area.</description>
     <inceptionYear>2017</inceptionYear>
     <properties>
         <main-class>nl.knaw.dans.easy.report.Command</main-class>

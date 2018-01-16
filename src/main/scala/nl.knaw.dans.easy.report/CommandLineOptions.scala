@@ -24,7 +24,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   editBuilder(_.setHelpWidth(110))
   printedName = "easy-manage-deposit"
   private val SUBCOMMAND_SEPARATOR = "---\n"
-  val description: String = s"""Creates report about the deposits in the deposit area."""
+  val description: String = s"""Manages the deposits in the deposit area."""
   val synopsis: String =
     s"""
        |  $printedName report full [<depositor>]
