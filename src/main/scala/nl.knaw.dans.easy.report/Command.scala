@@ -30,18 +30,24 @@ object Command extends App with DebugEnhancedLogging {
   val configuration = Configuration(Paths.get(System.getProperty("app.home")))
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
   val app = new EasyManageDepositApp(configuration)
-  val result: Try[FeedBackMessage] = commandLine.subcommand match {
-    case Some(full @ commandLine.fullCmd) =>
-      app.createFullReport(full.depositor.toOption)
-    case Some(summary @ commandLine.summaryCmd) =>
-      app.summary(summary.depositor.toOption)
-    case _ => Try { s"Unknown command: ${ commandLine.subcommand }" }
+
+  val resultSubcommandFirst: Try[FeedBackMessage] = commandLine.subcommand match {
+      case Some(report @ commandLine.reportCmd) => {
+            val resultSubcommandSecond: Try[FeedBackMessage] = commandLine.reportCmd.subcommand match {
+                case Some(full @ commandLine.reportCmd.fullCmd) =>
+                     app.createFullReport(full.depositor.toOption)
+                case Some(summary @ commandLine.reportCmd.summaryCmd) =>
+                      app.summary(summary.depositor.toOption)
+                case _ => Try { s"Unknown command: ${ commandLine.reportCmd.subcommand }" }
+            }
+      }
+      case _ => Try { s"Unknown command: ${ commandLine.reportCmd }" }
   }
 
-  result.doIfSuccess(msg => Console.err.println(s"OK: $msg"))
-    .doIfFailure { case t =>
-      Console.err.println(s"ERROR: ${ t.getMessage }")
+  resultSubcommandFirst.doIfSuccess(msg => Console.err.println(s"OK: $msg"))
+    .doIfFailure { case t => Console.err.println(s"ERROR: ${ t.getMessage }")
       System.exit(1)
+
     }
 }
 

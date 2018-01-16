@@ -27,8 +27,8 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val description: String = s"""Creates report about the deposits in the deposit area."""
   val synopsis: String =
     s"""
-       |  $printedName full [<depositor>]
-       |  $printedName summary [<depositor>]
+       |  $printedName report full [<depositor>]
+       |  $printedName report summary [<depositor>]
      """.stripMargin
 
   version(s"$printedName v${ configuration.version }")
@@ -44,17 +44,21 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |
        |""".stripMargin)
 
-  val fullCmd = new Subcommand("full") {
-    val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
-    footer(SUBCOMMAND_SEPARATOR)
-  }
-  addSubcommand(fullCmd)
+  val reportCmd = new Subcommand("report") {
 
-  val summaryCmd = new Subcommand("summary") {
-    val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
-    footer(SUBCOMMAND_SEPARATOR)
+    val fullCmd = new Subcommand("full") {
+      val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      footer(SUBCOMMAND_SEPARATOR)
+    }
+    addSubcommand(fullCmd)
+
+    val summaryCmd = new Subcommand("summary") {
+      val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      footer(SUBCOMMAND_SEPARATOR)
+    }
+    addSubcommand(summaryCmd)
   }
-  addSubcommand(summaryCmd)
+  addSubcommand(reportCmd)
 
   footer("")
   verify()

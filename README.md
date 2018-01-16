@@ -6,8 +6,8 @@ easy-manage-deposit
 SYNOPSIS
 --------
    
-     easy-manage-deposit full [<depositor>]
-     easy-manage-deposit summary [<depositor>]
+     easy-manage-deposit report full [<depositor>]
+     easy-manage-deposit report summary [<depositor>]
      
 ARGUMENTS
 --------
@@ -18,18 +18,21 @@ ARGUMENTS
          --help      Show help message
          --version   Show version of this program
    
-     Subcommand: full
-         --help   Show help message
-         
-      trailing arguments:
-       depositor (not required)
-     ---
-   
-     Subcommand: summary
-         --help   Show help message
-         
-      trailing arguments:
-       depositor (not required) 
+       Subcommand: report
+             --help   Show help message
+     
+       Subcommand: report full
+             --help   Show help message
+     
+        trailing arguments:
+         depositor (not required)
+       ---
+     
+       Subcommand: report summary
+             --help   Show help message
+     
+        trailing arguments:
+         depositor (not required)
      ---
     
      
@@ -41,10 +44,10 @@ Creates report about the deposits in the deposit area.
 EXAMPLES
 --------
 
-     easy-manage-deposit full mendeleydata
-     easy-manage-deposit summary mendeleydata
-     easy-manage-deposit full dryad
-     easy-manage-deposit summary dryad
+     easy-manage-deposit report full mendeleydata
+     easy-manage-deposit report summary mendeleydata
+     easy-manage-deposit report full dryad
+     easy-manage-deposit report summary dryad
 
 
 INSTALLATION AND CONFIGURATION
