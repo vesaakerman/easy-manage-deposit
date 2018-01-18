@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.report
 
 import java.nio.file._
-import java.nio.file.attribute.FileTime
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
@@ -24,6 +23,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
+import org.joda.time.{ DateTime, DateTimeZone }
 import resource.managed
 
 import scala.collection.JavaConverters._
@@ -39,7 +39,7 @@ case class Deposit(depositId: DepositId,
                    creationTimestamp: String,
                    numberOfContinuedDeposits: Int,
                    storageSpace: Long,
-                   lastModified: FileTime)
+                   lastModified: String)
 
 class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLogging {
   private val KB = 1024L
@@ -63,7 +63,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
 
         // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
         if (filterOnDepositor.forall(depositorId ==)) Some {
-          depositId -> Deposit(
+          Deposit(
             depositId = depositId,
             doi = getDoi(depositProperties, depositDirPath),
             depositorId,
@@ -72,12 +72,19 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
             creationTimestamp = depositProperties.getString("creation.timestamp"),
             depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
             storageSpace = FileUtils.sizeOfDirectory(depositDirPath.toFile),
-            lastModified = Files.getLastModifiedTime(depositDirPath)
+            lastModified = getLastModifiedTimestamp(depositDirPath)
           )
         }
         else None
       }
-      .toMap
+  }
+
+  private def getLastModifiedTimestamp(depositDirPath: Path): String = {
+    managed(Files.list(depositDirPath)).acquireAndGet { files =>
+      val modifiedMillisForFilesInDepositDir = files.iterator().asScala.toList.map(Files.getLastModifiedTime(_).toInstant.toEpochMilli)
+      if (modifiedMillisForFilesInDepositDir.isEmpty) "n/a"
+      else new DateTime(modifiedMillisForFilesInDepositDir.max, DateTimeZone.UTC).toString(dateTimeFormatter)
+    }
   }
 
   private def getDoi(depositProperties: PropertiesConfiguration, depositDirPath: Path): Option[String] = {
@@ -109,7 +116,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   private def outputSummary(deposits: Deposits, depositor: Option[DepositorId] = None): Unit = {
-    val selectedDeposits = depositor.map(d => deposits.values.filter(_.depositor == d)).getOrElse(deposits.values)
+    val selectedDeposits = depositor.map(d => deposits.filter(_.depositor == d)).getOrElse(deposits)
     val draft = selectedDeposits.filter(_.state == "DRAFT").toList
     val invalid = selectedDeposits.filter(_.state == "INVALID").toList
     val finalizing = selectedDeposits.filter(_.state == "FINALIZING").toList
@@ -141,21 +148,19 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   private def outputFullReport(deposits: Deposits): Unit = {
-    val sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
     val csvFormat: CSVFormat = CSVFormat.RFC4180
       .withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DEPOSIT_CREATION_TIMESTAMP",
         "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
       .withDelimiter(',')
     val printer = csvFormat.print(Console.out)
-    deposits.keys.foreach { depositId =>
-      val deposit = deposits(depositId)
+    deposits.sortBy(_.creationTimestamp) foreach { deposit =>
       printer.printRecord(
         deposit.depositor,
-        depositId,
+        deposit.depositId,
         deposit.state,
         deposit.doi.getOrElse("n/a"),
         deposit.creationTimestamp,
-        sdf.format(deposit.lastModified.toMillis),
+        deposit.lastModified,
         deposit.description,
         deposit.numberOfContinuedDeposits.toString,
         deposit.storageSpace.toString)
