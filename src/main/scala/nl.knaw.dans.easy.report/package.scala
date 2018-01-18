@@ -17,6 +17,7 @@ package nl.knaw.dans.easy
 
 import java.nio.file.{ Files, Path }
 
+import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
 import resource._
 
 import scala.collection.JavaConverters._
@@ -24,11 +25,13 @@ import scala.collection.JavaConverters._
 package object report {
 
   type DepositId = String
-  type Deposits = Map[DepositId, Deposit]
+  type Deposits = Seq[Deposit]
   type DepositorId = String
 
   val XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance"
   val XML_NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
+
+  val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
   implicit class PathExtensions(val path: Path) extends AnyVal {
     def list[T](f: Stream[Path] => T): T = {
