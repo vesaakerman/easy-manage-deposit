@@ -16,7 +16,6 @@
 package nl.knaw.dans.easy.report
 
 import java.nio.file._
-import java.nio.file.attribute.FileTime
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
@@ -73,11 +72,19 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
             creationTimestamp = depositProperties.getString("creation.timestamp"),
             depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
             storageSpace = FileUtils.sizeOfDirectory(depositDirPath.toFile),
-            lastModified = new DateTime(Files.getLastModifiedTime(depositDirPath).toInstant.toEpochMilli, DateTimeZone.UTC).toString(dateTimeFormatter)
+            lastModified = getLastModifiedTimestamp(depositDirPath)
           )
         }
         else None
       }
+  }
+
+  private def getLastModifiedTimestamp(depositDirPath: Path): String = {
+    managed(Files.list(depositDirPath)).acquireAndGet { files =>
+      val modifiedMillisForFilesInDepositDir = files.iterator().asScala.toList.map(Files.getLastModifiedTime(_).toInstant.toEpochMilli)
+      if (modifiedMillisForFilesInDepositDir.isEmpty) "n/a"
+      else new DateTime(modifiedMillisForFilesInDepositDir.max, DateTimeZone.UTC).toString(dateTimeFormatter)
+    }
   }
 
   private def getDoi(depositProperties: PropertiesConfiguration, depositDirPath: Path): Option[String] = {
@@ -146,7 +153,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
         "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
       .withDelimiter(',')
     val printer = csvFormat.print(Console.out)
-    deposits.sortBy(_.creationTimestamp)foreach { deposit =>
+    deposits.sortBy(_.creationTimestamp) foreach { deposit =>
       printer.printRecord(
         deposit.depositor,
         deposit.depositId,
