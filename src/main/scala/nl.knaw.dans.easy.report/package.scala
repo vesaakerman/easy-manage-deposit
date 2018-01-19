@@ -34,8 +34,8 @@ package object report {
   val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
   implicit class PathExtensions(val path: Path) extends AnyVal {
-    def list[T](f: Stream[Path] => T): T = {
-      managed(Files.list(path)).acquireAndGet(stream => f(stream.iterator().asScala.toStream))
+    def list[T](f: List[Path] => T): T = {
+      managed(Files.list(path)).acquireAndGet(stream => f(stream.iterator().asScala.toList))
     }
   }
 }

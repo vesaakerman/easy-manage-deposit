@@ -37,10 +37,12 @@ fi
 TO_EMAILS="$TO"
 
 exit_if_failed() {
-    local MSG=$1
-    EXITSTATUS=$?
+    local EXITSTATUS=$?
     if [ $EXITSTATUS != 0 ]; then
-        echo "ERROR: $MSG, exit status = $EXITSTATUS"
+        echo "ERROR: $1, exit status = $EXITSTATUS"
+        echo "Report generation FAILED. Contact the system administrator." |
+        mail -s "FAILED: Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
+             $FROM_EMAIL $BCC_EMAILS $TO
         exit 1
     fi
     echo "OK"
