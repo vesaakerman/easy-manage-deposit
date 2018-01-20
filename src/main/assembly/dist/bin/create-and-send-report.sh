@@ -11,6 +11,7 @@ EASY_ACCOUNT=$1
 FROM=$2
 TO=$3
 BCC=$4
+EASY_HOST=$5
 TMPDIR=/tmp
 
 if [ "$EASY_ACCOUNT" == "-" ]; then
@@ -56,7 +57,7 @@ echo -n "Creating full report for ${EASY_ACCOUNT:-all depositors}..."
 exit_if_failed "full report failed"
 
 echo "Status of EASY deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \
-mail -s "Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
+mail -s "${EASY_HOST} Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
      -a $REPORT_SUMMARY \
      -a $REPORT_FULL \
      $FROM_EMAIL $BCC_EMAILS $TO
