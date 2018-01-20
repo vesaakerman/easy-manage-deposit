@@ -2,16 +2,16 @@
 #
 # Helper script to create full and summary reports and send them to a list of recipients.
 #
-# Usage: ./create-and-send-report.sh <depositor-account> <from-email> <to-email> <bcc-email>
+# Usage: ./create-and-send-report.sh <host-name> <depositor-account> [<from-email>] <to-email> [<bcc-email>]
 #
 # Use - (dash) as depositor-account to generate a report for all the deposits.
 #
 
-EASY_ACCOUNT=$1
-FROM=$2
-TO=$3
-BCC=$4
-EASY_HOST=$5
+EASY_HOST=$1
+EASY_ACCOUNT=$2
+FROM=$3
+TO=$4
+BCC=$5
 TMPDIR=/tmp
 
 if [ "$EASY_ACCOUNT" == "-" ]; then
@@ -56,8 +56,8 @@ echo -n "Creating full report for ${EASY_ACCOUNT:-all depositors}..."
 /opt/dans.knaw.nl/easy-deposit-report/bin/easy-deposit-report full $EASY_ACCOUNT > $REPORT_FULL
 exit_if_failed "full report failed"
 
-echo "Status of EASY deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \
-mail -s "${EASY_HOST} Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
+echo "Status of $EASY_HOST deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \
+mail -s "$EASY_HOST Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
      -a $REPORT_SUMMARY \
      -a $REPORT_FULL \
      $FROM_EMAIL $BCC_EMAILS $TO
