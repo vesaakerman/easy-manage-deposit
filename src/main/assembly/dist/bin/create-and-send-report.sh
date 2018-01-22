@@ -60,5 +60,5 @@ echo "Status of $EASY_HOST deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-
 mail -s "$EASY_HOST Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
      -a $REPORT_SUMMARY \
      -a $REPORT_FULL \
-     $FROM_EMAIL $BCC_EMAILS $TO
+     $BCC_EMAILS $FROM_EMAIL $TO
 exit_if_failed "sending of e-mail failed"
