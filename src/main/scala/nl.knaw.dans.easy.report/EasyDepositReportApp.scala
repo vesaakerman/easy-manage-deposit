@@ -82,9 +82,9 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
 
   private def getLastModifiedTimestamp(depositDirPath: Path): String = {
     managed(Files.list(depositDirPath)).acquireAndGet { files =>
-      files.map(Files.getLastModifiedTime(_).toInstant.toEpochMilli)
+      files.map[Long](Files.getLastModifiedTime(_).toInstant.toEpochMilli)
         .max(LongComparator)
-        .map(millis => new DateTime(millis, DateTimeZone.UTC).toString(dateTimeFormatter))
+        .map[String](millis => new DateTime(millis, DateTimeZone.UTC).toString(dateTimeFormatter))
         .orElse("n/a")
     }
   }
