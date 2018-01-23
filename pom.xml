@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>nl.knaw.dans.easy</groupId>
     <artifactId>easy-manage-deposit</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.2-SNAPSHOT</version>
     <name>EASY Manage Deposit</name>
     <url>https://github.com/DANS-KNAW/easy-manage-deposit</url>
     <description>Manages the deposits in the deposit area.</description>
@@ -103,6 +103,14 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.joda</groupId>
+            <artifactId>joda-convert</artifactId>
         </dependency>
     </dependencies>
     <repositories>
