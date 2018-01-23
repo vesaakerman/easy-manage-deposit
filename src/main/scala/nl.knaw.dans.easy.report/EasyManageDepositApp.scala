@@ -18,8 +18,7 @@ package nl.knaw.dans.easy.report
 import java.io.File
 import java.nio.file.Files._
 import java.nio.file.{ FileVisitResult, _ }
-import java.nio.file.attribute.{ BasicFileAttributes, FileTime }
-import java.nio.file._
+import java.nio.file.attribute.BasicFileAttributes
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
@@ -225,8 +224,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     }
   }
 
-  private def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId])(stream: Stream[Path]): Unit = {
-    stream.filter(isDirectory(_))
+  private def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId])(list: List[Path]): Unit = {
+    list.filter(isDirectory(_))
       .flatMap { depositDirPath =>
         val depositId = depositDirPath.getFileName.toString
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
