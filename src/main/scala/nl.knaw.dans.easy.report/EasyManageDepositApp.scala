@@ -15,8 +15,10 @@
  */
 package nl.knaw.dans.easy.report
 
-import java.nio.file._
-import java.nio.file.attribute.FileTime
+import java.io.File
+import java.nio.file.Files._
+import java.nio.file.{ FileVisitResult, _ }
+import java.nio.file.attribute.{ BasicFileAttributes, FileTime }
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
@@ -54,8 +56,12 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor))
   }
 
+  private def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
+    depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor))
+  }
+
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId])(stream: Stream[Path]): Deposits = {
-    stream.filter(Files.isDirectory(_))
+    stream.filter(isDirectory(_))
       .flatMap { depositDirPath =>
         val depositId = depositDirPath.getFileName.toString
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
@@ -72,7 +78,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
             creationTimestamp = depositProperties.getString("creation.timestamp"),
             depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
             storageSpace = FileUtils.sizeOfDirectory(depositDirPath.toFile),
-            lastModified = Files.getLastModifiedTime(depositDirPath)
+            lastModified = getLastModifiedTime(depositDirPath)
           )
         }
         else None
@@ -82,11 +88,11 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
   private def getDoi(depositProperties: PropertiesConfiguration, depositDirPath: Path): Option[String] = {
     Option(depositProperties.getString("identifier.doi")).orElse {
-      managed(Files.list(depositDirPath)).acquireAndGet { files =>
+      managed(list(depositDirPath)).acquireAndGet { files =>
         files.iterator().asScala.toStream
-          .collectFirst { case bagDir if Files.isDirectory(bagDir) => bagDir.resolve("metadata/dataset.xml") }
+          .collectFirst { case bagDir if isDirectory(bagDir) => bagDir.resolve("metadata/dataset.xml") }
           .flatMap {
-            case datasetXml if Files.exists(datasetXml) => Try {
+            case datasetXml if exists(datasetXml) => Try {
               val docElement = XML.loadFile(datasetXml.toFile)
               findDoi(docElement \\ "dcmiMetadata" \\ "identifier")
             }.getOrElse(None)
@@ -191,4 +197,99 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     outputFullReport(sword2Deposits ++ ingestFlowDeposits)
     "End of full report."
   }
+
+
+  def getPathListOfSubFilesAndDirectories(directoryName: String): Array[String] = {
+    new File(directoryName)
+      .listFiles
+      .filter(_.isDirectory)
+      .map(_.getName)
+  }
+
+  def getListOfFiles(dir: String): List[File] = {
+    val d = new File(dir)
+    if (d.exists && d.isDirectory) {
+      d.listFiles.filter(_.isFile).toList
+    }
+    else {
+      List[File]()
+    }
+  }
+
+  private def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId])(stream: Stream[Path]): Unit = {
+    stream.filter(isDirectory(_))
+      .flatMap { depositDirPath =>
+        val depositId = depositDirPath.getFileName.toString
+        val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
+        val depositorId = depositProperties.getString("depositor.userId")
+
+        // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
+        if (filterOnDepositor.forall(depositorId ==)) Some {
+          val dirPath = depositDirPath
+          val dirList = getListOfFiles(dirPath.toString)
+          dirList.foreach { i =>
+            val pathname = dirPath.toString
+            val fileList = getListOfFiles(pathname)
+            fileList.foreach { i =>
+              val rootPath: Path = Paths.get(pathname)
+              val file = walkFileTree(rootPath, new SimpleFileVisitor[Path]() {
+                override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
+                  //System.out.println("delete file: " + file.toString)
+                  delete(file)
+                  FileVisitResult.CONTINUE
+                }
+              }
+              )
+
+              //println(dirPath.toString)
+              //Files.delete(dirPath)
+
+              //println(dirPath)
+              //Files.delete(dirPath)
+
+
+              //Files.delete(rootPath)
+
+              //import java.nio.file.{ FileVisitResult, Files }
+
+              //Files.delete(dirPath)
+              /*
+              val rootPathMainfile: Path = dirPath
+              val mainFile = walkFileTree(rootPathMainfile, new SimpleFileVisitor[Path]() {
+                override def visitFile(mainFile: Path, attrs: BasicFileAttributes): FileVisitResult = {
+                  //System.out.println("delete file: " + file.toString)
+                  delete(mainFile)
+                  FileVisitResult.CONTINUE
+                }
+              }
+              )
+              */
+              def postVisitDirectory(dir: Path) = {
+                Files.delete(dir)
+                System.out.println("delete dir: " + dir.toString)
+                FileVisitResult.CONTINUE
+              }
+
+              postVisitDirectory(depositDirPath)
+            }
+
+
+            //val dir = depositDirPath
+
+
+
+
+          }
+        }
+        else None
+      }
+  }
+
+  def cleanDepositor(depositor: Option[DepositorId]): Try[String] = Try {
+    deleteDepositFromDepositsDir(sword2DepositsDir, depositor)
+    deleteDepositFromDepositsDir(ingestFlowInbox, depositor)
+    "Deposits of the depositor has been cleaned"
+  }
+
+
 }

@@ -8,7 +8,9 @@ SYNOPSIS
    
      easy-manage-deposit report full [<depositor>]
      easy-manage-deposit report summary [<depositor>]
+     easy-manage-deposit clean [<depositor>]
      
+         
 ARGUMENTS
 --------
    
@@ -33,6 +35,12 @@ ARGUMENTS
      
         trailing arguments:
          depositor (not required)
+       ---
+       Subcommand: clean
+             --help   Show help message
+     
+        trailing arguments:
+         depositor (not required)
      ---
     
      
@@ -44,10 +52,13 @@ Manages the deposits in the deposit area.
 EXAMPLES
 --------
 
-     easy-manage-deposit report full mendeleydata
-     easy-manage-deposit report summary mendeleydata
-     easy-manage-deposit report full dryad
-     easy-manage-deposit report summary dryad
+     easy-manage-deposit report full < UserId of the depositor >
+     easy-manage-deposit report summary < UserId of the depositor >
+     easy-manage-deposit report full < UserId of the depositor >
+     easy-manage-deposit report summary < UserId of the depositor >
+     easy-manage-deposit clean  < UserId of the depositor >
+     easy-manage-deposit clean  < UserId of the depositor >
+     
 
 
 INSTALLATION AND CONFIGURATION

@@ -29,6 +29,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     s"""
        |  $printedName report full [<depositor>]
        |  $printedName report summary [<depositor>]
+       |  $printedName clean [<depositor>]
      """.stripMargin
 
   version(s"$printedName v${ configuration.version }")
@@ -59,6 +60,12 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     addSubcommand(summaryCmd)
   }
   addSubcommand(reportCmd)
+
+  val cleanCmd = new Subcommand("clean") {
+    val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+    footer(SUBCOMMAND_SEPARATOR)
+  }
+  addSubcommand(cleanCmd)
 
   footer("")
   verify()

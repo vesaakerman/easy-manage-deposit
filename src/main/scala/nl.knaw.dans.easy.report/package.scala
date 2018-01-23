@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy
 
+import java.nio.file.Files.walkFileTree
 import java.nio.file.{ Files, Path }
 
 import resource._
