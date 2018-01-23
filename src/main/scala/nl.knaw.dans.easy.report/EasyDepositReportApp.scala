@@ -55,9 +55,11 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor))
   }
 
-  private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId])(stream: Stream[Path]): Deposits = {
-    stream.filter(Files.isDirectory(_))
+  private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId])(deposits: List[Path]): Deposits = {
+    trace(filterOnDepositor)
+    deposits.filter(Files.isDirectory(_))
       .flatMap { depositDirPath =>
+        debug(s"Getting info from $depositDirPath")
         val depositId = depositDirPath.getFileName.toString
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
         val depositorId = depositProperties.getString("depositor.userId")
@@ -70,7 +72,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
             depositorId,
             state = depositProperties.getString("state.label"),
             description = depositProperties.getString("state.description"),
-            creationTimestamp = depositProperties.getString("creation.timestamp"),
+            creationTimestamp = Option(depositProperties.getString("creation.timestamp")).getOrElse("n/a"),
             depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
             storageSpace = FileUtils.sizeOfDirectory(depositDirPath.toFile),
             lastModified = getLastModifiedTimestamp(depositDirPath)

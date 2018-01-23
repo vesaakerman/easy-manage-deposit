@@ -40,7 +40,8 @@ object Command extends App with DebugEnhancedLogging {
 
   result.doIfSuccess(msg => Console.err.println(s"OK: $msg"))
     .doIfFailure { case t =>
-      Console.err.println(s"ERROR: ${ t.getMessage }")
+      Console.err.println(s"ERROR: ${ t.getClass.getSimpleName }: ${ t.getMessage }")
+      logger.error("A fatal exception occurred", t)
       System.exit(1)
     }
 }
