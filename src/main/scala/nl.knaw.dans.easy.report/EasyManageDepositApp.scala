@@ -17,8 +17,7 @@ package nl.knaw.dans.easy.report
 
 import java.io.File
 import java.nio.file.Files._
-import java.nio.file.{ FileVisitResult, _ }
-import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file._
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
@@ -26,6 +25,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
+import org.apache.commons.io.FileUtils.deleteDirectory
 import org.joda.time.{ DateTime, DateTimeZone }
 import resource.managed
 
@@ -206,14 +206,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of full report."
   }
 
-
-  def getPathListOfSubFilesAndDirectories(directoryName: String): Array[String] = {
-    new File(directoryName)
-      .listFiles
-      .filter(_.isDirectory)
-      .map(_.getName)
-  }
-
   def getListOfFiles(dir: String): List[File] = {
     val d = new File(dir)
     if (d.exists && d.isDirectory) {
@@ -238,55 +230,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
           dirList.foreach { i =>
             val pathname = dirPath.toString
             val fileList = getListOfFiles(pathname)
-            fileList.foreach { i =>
-              val rootPath: Path = Paths.get(pathname)
-              val file = walkFileTree(rootPath, new SimpleFileVisitor[Path]() {
-                override def visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult = {
-                  //System.out.println("delete file: " + file.toString)
-                  delete(file)
-                  FileVisitResult.CONTINUE
-                }
-              }
-              )
-
-              //println(dirPath.toString)
-              //Files.delete(dirPath)
-
-              //println(dirPath)
-              //Files.delete(dirPath)
-
-
-              //Files.delete(rootPath)
-
-              //import java.nio.file.{ FileVisitResult, Files }
-
-              //Files.delete(dirPath)
-              /*
-              val rootPathMainfile: Path = dirPath
-              val mainFile = walkFileTree(rootPathMainfile, new SimpleFileVisitor[Path]() {
-                override def visitFile(mainFile: Path, attrs: BasicFileAttributes): FileVisitResult = {
-                  //System.out.println("delete file: " + file.toString)
-                  delete(mainFile)
-                  FileVisitResult.CONTINUE
-                }
-              }
-              )
-              */
-              def postVisitDirectory(dir: Path) = {
-                Files.delete(dir)
-                System.out.println("delete dir: " + dir.toString)
-                FileVisitResult.CONTINUE
-              }
-
-              postVisitDirectory(depositDirPath)
-            }
-
-
-            //val dir = depositDirPath
-
-
-
-
+            deleteDirectory(dirPath.toFile)
           }
         }
         else None
