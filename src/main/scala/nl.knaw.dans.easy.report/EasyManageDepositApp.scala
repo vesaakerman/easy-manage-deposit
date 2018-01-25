@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.report
 
-import java.io.File
 import java.nio.file.Files._
 import java.nio.file._
 import java.text.SimpleDateFormat
@@ -34,15 +33,6 @@ import scala.language.postfixOps
 import scala.util.Try
 import scala.xml.{ NodeSeq, XML }
 
-case class Deposit(depositId: DepositId,
-                   doi: Option[String],
-                   depositor: DepositorId,
-                   state: String,
-                   description: String,
-                   creationTimestamp: String,
-                   numberOfContinuedDeposits: Int,
-                   storageSpace: Long,
-                   lastModified: String)
 
 class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging {
   private val KB = 1024L
@@ -57,7 +47,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor))
   }
 
-  private def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
+  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
     depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor))
   }
 
@@ -206,32 +196,16 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of full report."
   }
 
-  def getListOfFiles(dir: String): List[File] = {
-    val d = new File(dir)
-    if (d.exists && d.isDirectory) {
-      d.listFiles.filter(_.isFile).toList
-    }
-    else {
-      List[File]()
-    }
-  }
-
-  private def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId])(list: List[Path]): Unit = {
+  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId])(list: List[Path]): List[Option[Unit]] = {
     list.filter(isDirectory(_))
-      .flatMap { depositDirPath =>
-        val depositId = depositDirPath.getFileName.toString
+      .map { depositDirPath =>
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
         val depositorId = depositProperties.getString("depositor.userId")
 
         // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
         if (filterOnDepositor.forall(depositorId ==)) Some {
-          val dirPath = depositDirPath
-          val dirList = getListOfFiles(dirPath.toString)
-          dirList.foreach { i =>
-            val pathname = dirPath.toString
-            val fileList = getListOfFiles(pathname)
-            deleteDirectory(dirPath.toFile)
-          }
+          deleteDirectory(depositDirPath.toFile)
+          println(depositDirPath)
         }
         else None
       }

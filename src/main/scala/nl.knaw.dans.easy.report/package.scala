@@ -38,5 +38,6 @@ package object report {
     def list[T](f: List[Path] => T): T = {
       managed(Files.list(path)).acquireAndGet(stream => f(stream.iterator().asScala.toList))
     }
+
   }
 }

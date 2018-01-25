@@ -31,7 +31,7 @@ object Command extends App with DebugEnhancedLogging {
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
   val app = new EasyManageDepositApp(configuration)
 
-  val result_1: Try[FeedBackMessage] = commandLine.subcommands match {
+  val result: Try[FeedBackMessage] = commandLine.subcommands match {
     case commandLine.reportCmd :: (full @ commandLine.reportCmd.fullCmd) :: Nil =>
       app.createFullReport(full.depositor.toOption)
     case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
@@ -41,7 +41,7 @@ object Command extends App with DebugEnhancedLogging {
     case _ => Try { s"Unknown command: ${ commandLine.subcommand }" }
   }
 
-  result_1.doIfSuccess(msg => Console.err.println(s"OK: $msg"))
+  result.doIfSuccess(msg => Console.err.println(s"OK: $msg"))
     .doIfFailure { case t =>
       Console.err.println(s"ERROR: ${ t.getClass.getSimpleName }: ${ t.getMessage }")
       logger.error("A fatal exception occurred", t)
