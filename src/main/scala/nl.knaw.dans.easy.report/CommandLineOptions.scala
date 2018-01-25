@@ -23,6 +23,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   appendDefaultToDescription = true
   editBuilder(_.setHelpWidth(110))
   printedName = "easy-manage-deposit"
+  private val SUBCOMMAND_SEPARATOR = "---\n"
   val description: String = s"""Manages the deposits in the deposit area."""
   val synopsis: String =
     s"""
@@ -30,6 +31,20 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |  $printedName report summary [<depositor>]
        |  $printedName clean [<depositor>]
      """.stripMargin
+
+  version(s"$printedName v${ configuration.version }")
+  banner(
+    s"""
+       |  $description
+       |
+       |Usage:
+       |
+       |$synopsis
+       |
+       |Options:
+       |
+       |""".stripMargin)
+
   val reportCmd = new Subcommand("report") {
 
     val fullCmd = new Subcommand("full") {
@@ -44,28 +59,14 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     }
     addSubcommand(summaryCmd)
   }
+  addSubcommand(reportCmd)
 
-  version(s"$printedName v${ configuration.version }")
-  banner(
-    s"""
-       |  $description
-       |
-       |Usage:
-       |
-       |$synopsis
-       |
-       |Options:
-       |
-       |""".stripMargin)
   val cleanCmd = new Subcommand("clean") {
     val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
     footer(SUBCOMMAND_SEPARATOR)
   }
-  addSubcommand(reportCmd)
-  private val SUBCOMMAND_SEPARATOR = "---\n"
   addSubcommand(cleanCmd)
 
   footer("")
   verify()
 }
-

@@ -78,6 +78,21 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       }
   }
 
+  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId])(list: List[Path]): List[Option[Unit]] = {
+    list.filter(isDirectory(_))
+      .map { depositDirPath =>
+        val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
+        val depositorId = depositProperties.getString("depositor.userId")
+
+        // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
+        if (filterOnDepositor.forall(depositorId ==)) Some {
+          deleteDirectory(depositDirPath.toFile)
+          println(depositDirPath)
+        }
+        else None
+      }
+  }
+
   private def getLastModifiedTimestamp(depositDirPath: Path): String = {
     managed(Files.list(depositDirPath)).acquireAndGet { files =>
       val modifiedMillisForFilesInDepositDir = files.iterator().asScala.toList.map(Files.getLastModifiedTime(_).toInstant.toEpochMilli)
@@ -182,6 +197,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     f"${ filterOnState }%-10s : ${ deposits.size }%5d (${ formatStorageSize(deposits.map(_.storageSpace).sum) })"
   }
 
+  
   def summary(depositor: Option[DepositorId] = None): Try[String] = Try {
     val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor)
     val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor)
@@ -194,21 +210,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor)
     outputFullReport(sword2Deposits ++ ingestFlowDeposits)
     "End of full report."
-  }
-
-  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId])(list: List[Path]): List[Option[Unit]] = {
-    list.filter(isDirectory(_))
-      .map { depositDirPath =>
-        val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
-        val depositorId = depositProperties.getString("depositor.userId")
-
-        // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-        if (filterOnDepositor.forall(depositorId ==)) Some {
-          deleteDirectory(depositDirPath.toFile)
-          println(depositDirPath)
-        }
-        else None
-      }
   }
 
   def cleanDepositor(depositor: Option[DepositorId]): Try[String] = Try {
