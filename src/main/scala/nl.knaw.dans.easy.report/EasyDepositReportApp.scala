@@ -154,6 +154,7 @@ class EasyDepositReportApp(configuration: Configuration) extends DebugEnhancedLo
       .withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DEPOSIT_CREATION_TIMESTAMP",
         "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
       .withDelimiter(',')
+      .withRecordSeparator('\n')
     val printer = csvFormat.print(Console.out)
     deposits.sortBy(_.creationTimestamp) foreach { deposit =>
       printer.printRecord(
