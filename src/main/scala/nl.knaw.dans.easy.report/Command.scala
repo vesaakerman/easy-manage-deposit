@@ -36,8 +36,18 @@ object Command extends App with DebugEnhancedLogging {
       app.createFullReport(full.depositor.toOption)
     case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
       app.summary(summary.depositor.toOption)
-    case (clean @ commandLine.cleanCmd) :: Nil =>
-      app.cleanDepositor(clean.depositor.toOption, clean.keep.toOption.get, clean.state.toOption.get, clean.dataOnly.toOption)
+    case (clean @ commandLine.cleanCmd) :: Nil => {
+      val scanner = new java.util.Scanner(System.in)
+      Console.println("This action will delete data from the deposit area. OK? (y/n):")
+      scanner.nextLine() match {
+        case "y" => {
+          app.cleanDepositor(clean.depositor.toOption, clean.keep.toOption.get, clean.state.toOption.get, clean.dataOnly.toOption)
+          Try{"Execution of clean : Success "}
+        }
+        case "n" => Try{"Execution of clean : Failure - user interruption"}
+        case _ => Try{"Please enter a valid char : y or n"}
+      }
+    }
     case (retry @ commandLine.retryCmd) :: Nil =>
       app.retryDepositor(retry.depositor.toOption)
     case _ => Try { s"Unknown command: ${ commandLine.subcommand }" }

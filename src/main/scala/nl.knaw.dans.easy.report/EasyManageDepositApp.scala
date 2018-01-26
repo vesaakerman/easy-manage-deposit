@@ -21,16 +21,11 @@ import java.text.SimpleDateFormat
 import java.time._
 import java.util.{ Calendar, Date }
 
-import org.apache.commons.io.FileUtils.{ readFileToString, write }
-
-import scala.xml.parsing.ConstructingParser.fromSource
-//import java.util.{ TimeZone }
-
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
-import org.apache.commons.io.FileUtils.deleteDirectory
+import org.apache.commons.io.FileUtils.{ deleteDirectory, readFileToString, write }
 import org.joda.time.{ DateTime, DateTimeZone, Duration, Interval }
 import resource.managed
 
@@ -50,8 +45,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   private val sword2DepositsDir = Paths.get(configuration.properties.getString("easy-sword2"))
   private val ingestFlowInbox = Paths.get(configuration.properties.getString("easy-ingest-flow-inbox"))
 
-  private val currentDate = DateTime.now().toString
-  val end = new DateTime(currentDate, DateTimeZone.UTC)
+  val end = DateTime.now(DateTimeZone.UTC)
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor))
@@ -263,14 +257,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, bool: Option[Boolean]): Try[String] = Try {
-    val scanner = new java.util.Scanner(System.in)
-    Console.println("This action will delete data from the deposit area. OK? (y/n):")
-    val input = scanner.nextLine()
-    if (input == "y") {
-      deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, bool)
-      deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, bool)
-      "Execution of clean : Success "
-    }
-    else "Execution of clean : Failure - user interruption"
+    deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, bool)
+    deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, bool)
+    "Execution of clean : Success "
   }
 }
