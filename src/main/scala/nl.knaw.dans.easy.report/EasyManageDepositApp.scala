@@ -102,11 +102,11 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
           if ((depositAge > age) && (depositState == state)) {
             if (bool == Some(false))
               deleteDirectory(depositDirPath.toFile)
-            if (bool == Some(true))
-              depositDirPath.toFile.listFiles().foreach(File =>
-                if (File.getName != "deposit.properties")
-                  deleteDirectory(File))
-            println(depositDirPath)
+            if (bool == Some(true)) {
+              depositDirPath.toFile.listFiles().foreach(file =>
+                if (file.getName != "deposit.properties")
+                  deleteDirectory(file))
+            }
           }
         }
       }
