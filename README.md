@@ -8,39 +8,40 @@ SYNOPSIS
    
      easy-manage-deposit report full [<depositor>]
      easy-manage-deposit report summary [<depositor>]
-     easy-manage-deposit clean [<depositor>]
+     easy-manage-deposit clean --data-only --state [<state>] --keep [<n>][<depositor>]
      
          
 ARGUMENTS
 --------
    
      Options:
-   
-     
-         --help      Show help message
-         --version   Show version of this program
-   
-       Subcommand: report
-             --help   Show help message
-     
-       Subcommand: report full
-             --help   Show help message
-     
-        trailing arguments:
-         depositor (not required)
-       ---
-     
-       Subcommand: report summary
-             --help   Show help message
-     
-        trailing arguments:
-         depositor (not required)
-       ---
-       Subcommand: clean
-             --help   Show help message
-     
-        trailing arguments:
-         depositor (not required)
+                --help      Show help message
+                --version   Show version of this program
+        
+          Subcommand: report
+                --help   Show help message
+        
+          Subcommand: report full
+                --help   Show help message
+        
+           trailing arguments:
+            depositor (not required)
+          ---
+        
+          Subcommand: report summary
+                --help   Show help message
+        
+           trailing arguments:
+            depositor (not required)
+          ---
+          Subcommand: clean
+            -d, --data-only       
+            -k, --keep  <arg>     (default = -1)
+            -s, --state  <arg>    (default = DRAFT)
+                --help           Show help message
+        
+           trailing arguments:
+            depositor (not required)
      ---
     
      
@@ -57,7 +58,7 @@ EXAMPLES
      easy-manage-deposit report full < UserId of the depositor >
      easy-manage-deposit report summary < UserId of the depositor >
      easy-manage-deposit clean  < UserId of the depositor >
-     easy-manage-deposit clean  < UserId of the depositor >
+     easy-manage-deposit clean  --data-only --state <state> --keep <n> < UserId of the depositor >
      
 
 

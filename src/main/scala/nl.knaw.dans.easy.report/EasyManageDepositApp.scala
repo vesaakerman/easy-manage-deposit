@@ -18,19 +18,24 @@ package nl.knaw.dans.easy.report
 import java.nio.file.Files._
 import java.nio.file._
 import java.text.SimpleDateFormat
-import java.util.Calendar
+import java.time._
+import java.util.{ Calendar, Date }
+
+import scala.xml.parsing.ConstructingParser.fromSource
+//import java.util.{ TimeZone }
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FileUtils.deleteDirectory
-import org.joda.time.{ DateTime, DateTimeZone }
+import org.joda.time.{ DateTime, DateTimeZone, Duration, Interval }
 import resource.managed
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.Try
+import scala.xml.parsing.ConstructingParser.fromSource
 import scala.xml.{ NodeSeq, XML }
 
 
@@ -43,12 +48,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   private val sword2DepositsDir = Paths.get(configuration.properties.getString("easy-sword2"))
   private val ingestFlowInbox = Paths.get(configuration.properties.getString("easy-ingest-flow-inbox"))
 
+  private val currentDate = DateTime.now().toString
+  val end = new DateTime(currentDate, DateTimeZone.UTC)
+
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor))
   }
 
-  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
-    depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor))
+  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, bool: Option[Boolean]): Unit = {
+    depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor, age, state, bool))
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId])(deposits: List[Path]): Deposits = {
@@ -78,18 +86,29 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       }
   }
 
-  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId])(list: List[Path]): List[Option[Unit]] = {
+  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, bool: Option[Boolean])(list: List[Path]): Unit = {
     list.filter(isDirectory(_))
-      .map { depositDirPath =>
+      .foreach { depositDirPath =>
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
         val depositorId = depositProperties.getString("depositor.userId")
+        val creationTime = depositProperties.getString("creation.timestamp")
+        val depositState = depositProperties.getString("state.label")
+        val start = new DateTime(creationTime)
+        val duration = new Duration(start, end)
+        val depositAge = duration.getStandardDays
 
         // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-        if (filterOnDepositor.forall(depositorId ==)) Some {
-          deleteDirectory(depositDirPath.toFile)
-          println(depositDirPath)
+        if (filterOnDepositor.forall(depositorId ==)) {
+          if ((depositAge > age) && (depositState == state)) {
+            if (bool == Some(false))
+              deleteDirectory(depositDirPath.toFile)
+            if (bool == Some(true))
+              depositDirPath.toFile.listFiles().foreach(File =>
+                if (File.getName != "deposit.properties")
+                  deleteDirectory(File))
+            println(depositDirPath)
+          }
         }
-        else None
       }
   }
 
@@ -166,6 +185,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       .withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DEPOSIT_CREATION_TIMESTAMP",
         "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
       .withDelimiter(',')
+      .withRecordSeparator('\n')
     val printer = csvFormat.print(Console.out)
     deposits.sortBy(_.creationTimestamp) foreach { deposit =>
       printer.printRecord(
@@ -197,7 +217,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     f"${ filterOnState }%-10s : ${ deposits.size }%5d (${ formatStorageSize(deposits.map(_.storageSpace).sum) })"
   }
 
-  
   def summary(depositor: Option[DepositorId] = None): Try[String] = Try {
     val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor)
     val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor)
@@ -212,11 +231,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of full report."
   }
 
-  def cleanDepositor(depositor: Option[DepositorId]): Try[String] = Try {
-    deleteDepositFromDepositsDir(sword2DepositsDir, depositor)
-    deleteDepositFromDepositsDir(ingestFlowInbox, depositor)
-    "Deposits of the depositor has been cleaned"
+  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, bool: Option[Boolean]): Try[String] = Try {
+    val scanner = new java.util.Scanner(System.in)
+    Console.println("This action will delete data from the deposit area. OK? (y/n):")
+    val input = scanner.nextLine()
+    if (input == "y") {
+      deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, bool)
+      deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, bool)
+      "Execution of clean : Success "
+    }
+    else "Execution of clean : Failure - user interruption"
   }
-
-
 }

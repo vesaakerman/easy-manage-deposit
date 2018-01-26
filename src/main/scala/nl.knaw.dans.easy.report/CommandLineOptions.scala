@@ -17,6 +17,7 @@ package nl.knaw.dans.easy.report
 
 import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand }
 
+import scala.language.postfixOps
 import scala.language.reflectiveCalls
 
 class CommandLineOptions(args: Array[String], configuration: Configuration) extends ScallopConf(args) {
@@ -29,9 +30,8 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     s"""
        |  $printedName report full [<depositor>]
        |  $printedName report summary [<depositor>]
-       |  $printedName clean [<depositor>]
+       |  $printedName clean --data-only --state [<state>] --keep [<n>][<depositor>]
      """.stripMargin
-
   version(s"$printedName v${ configuration.version }")
   banner(
     s"""
@@ -44,7 +44,6 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |Options:
        |
        |""".stripMargin)
-
   val reportCmd = new Subcommand("report") {
 
     val fullCmd = new Subcommand("full") {
@@ -63,6 +62,10 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
 
   val cleanCmd = new Subcommand("clean") {
     val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+    val dataOnly = opt[Boolean](default= None, required = false)
+    val state = opt[String](default = Some("DRAFT"), required = false)
+    val keep = opt[Int](default = Some(-1), required = false)
+
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(cleanCmd)

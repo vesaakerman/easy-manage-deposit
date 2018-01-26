@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package nl.knaw.dans.easy.report
 
 import java.io.File
@@ -25,8 +26,6 @@ import scala.io.Source
  *
  * See also <a href="http://www.scalatest.org/user_guide/using_matchers#usingCustomMatchers">CustomMatchers</a> */
 trait CustomMatchers {
-  def containTrimmed(content: String) = new ContentMatcher(content)
-
   class ContentMatcher(content: String) extends Matcher[File] {
     def apply(left: File): MatchResult = {
       def trimLines(s: String): String = s.split("\n").map(_.trim).mkString("\n")
@@ -38,4 +37,5 @@ trait CustomMatchers {
       )
     }
   }
+  def containTrimmed(content: String) = new ContentMatcher(content)
 }
