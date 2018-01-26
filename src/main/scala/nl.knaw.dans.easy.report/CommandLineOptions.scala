@@ -31,6 +31,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |  $printedName report full [<depositor>]
        |  $printedName report summary [<depositor>]
        |  $printedName clean --data-only --state [<state>] --keep [<n>][<depositor>]
+       |  $printedName retry [<depositor>]
      """.stripMargin
   version(s"$printedName v${ configuration.version }")
   banner(
@@ -69,6 +70,12 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(cleanCmd)
+
+  val retryCmd = new Subcommand("retry") {
+    val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+    footer(SUBCOMMAND_SEPARATOR)
+  }
+  addSubcommand(retryCmd)
 
   footer("")
   verify()

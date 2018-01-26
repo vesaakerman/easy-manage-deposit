@@ -9,6 +9,7 @@ SYNOPSIS
      easy-manage-deposit report full [<depositor>]
      easy-manage-deposit report summary [<depositor>]
      easy-manage-deposit clean --data-only --state [<state>] --keep [<n>][<depositor>]
+     easy-manage-deposit retry [<depositor>]
      
          
 ARGUMENTS
@@ -39,7 +40,14 @@ ARGUMENTS
             -k, --keep  <arg>     (default = -1)
             -s, --state  <arg>    (default = DRAFT)
                 --help           Show help message
-        
+                
+           trailing arguments:
+            depositor (not required)
+          ---
+          
+          Subcommand: retry
+                --help   Show help message
+
            trailing arguments:
             depositor (not required)
      ---
@@ -57,9 +65,9 @@ EXAMPLES
      easy-manage-deposit report summary < UserId of the depositor >
      easy-manage-deposit report full < UserId of the depositor >
      easy-manage-deposit report summary < UserId of the depositor >
-     easy-manage-deposit clean  < UserId of the depositor >
-     easy-manage-deposit clean  --data-only --state <state> --keep <n> < UserId of the depositor >
-     
+     easy-manage-deposit clean < UserId of the depositor >
+     easy-manage-deposit clean --data-only --state <state> --keep <n> < UserId of the depositor >
+     easy-manage-deposit retry < UserId of the depositor >
 
 
 INSTALLATION AND CONFIGURATION

@@ -38,6 +38,8 @@ object Command extends App with DebugEnhancedLogging {
       app.summary(summary.depositor.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
       app.cleanDepositor(clean.depositor.toOption, clean.keep.toOption.get, clean.state.toOption.get, clean.dataOnly.toOption)
+    case (retry @ commandLine.retryCmd) :: Nil =>
+      app.retryDepositor(retry.depositor.toOption)
     case _ => Try { s"Unknown command: ${ commandLine.subcommand }" }
   }
 

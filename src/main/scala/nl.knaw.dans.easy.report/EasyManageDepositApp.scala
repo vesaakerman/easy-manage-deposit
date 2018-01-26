@@ -21,6 +21,8 @@ import java.text.SimpleDateFormat
 import java.time._
 import java.util.{ Calendar, Date }
 
+import org.apache.commons.io.FileUtils.{ readFileToString, write }
+
 import scala.xml.parsing.ConstructingParser.fromSource
 //import java.util.{ TimeZone }
 
@@ -57,6 +59,10 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
   def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, bool: Option[Boolean]): Unit = {
     depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor, age, state, bool))
+  }
+
+  def retryStalledDeposit(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
+    depositsDir.list(retryStalledDeposit(filterOnDepositor))
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId])(deposits: List[Path]): Deposits = {
@@ -107,6 +113,26 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
                 if (file.getName != "deposit.properties")
                   deleteDirectory(file))
             }
+          }
+        }
+      }
+  }
+
+  def retryStalledDeposit(filterOnDepositor: Option[DepositorId])(list: List[Path]): Unit = {
+    list.filter(isDirectory(_))
+      .foreach { depositDirPath =>
+        val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
+        val propsFile = depositDirPath.resolve("deposit.properties").toFile
+        val propsContent = readFileToString(propsFile)
+        val depositorId = depositProperties.getString("depositor.userId")
+        val depositState = depositProperties.getString("state.label")
+
+        // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
+        if (filterOnDepositor.forall(depositorId ==)) {
+          if (depositState == "STALLED") {
+            //depositProperties.setProperty("state.label", "SUBMITTED")
+            //depositProperties.save(depositProperties.getString("state.label"))
+            write(propsFile, propsContent.replace("=STALLED", "=SUBMITTED"))
           }
         }
       }
@@ -229,6 +255,11 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor)
     outputFullReport(sword2Deposits ++ ingestFlowDeposits)
     "End of full report."
+  }
+
+  def retryDepositor(depositor: Option[DepositorId]): Try[String] = Try {
+    val ingestFlowDeposits = retryStalledDeposit(ingestFlowInbox, depositor)
+    "STALLED states were replaced by SUBMITTED states."
   }
 
   def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, bool: Option[Boolean]): Try[String] = Try {
