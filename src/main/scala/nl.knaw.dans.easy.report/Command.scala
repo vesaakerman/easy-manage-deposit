@@ -20,9 +20,9 @@ import java.nio.file.Paths
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
+import scala.io.StdIn
 import scala.language.reflectiveCalls
 import scala.util.Try
-
 
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
@@ -37,15 +37,15 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
       app.summary(summary.depositor.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil => {
-      val scanner = new java.util.Scanner(System.in)
       Console.println("This action will delete data from the deposit area. OK? (y/n):")
-      scanner.nextLine() match {
+      StdIn.readLine() match {
         case "y" => {
-          app.cleanDepositor(clean.depositor.toOption, clean.keep.toOption.get, clean.state.toOption.get, clean.dataOnly.toOption)
-          Try{"Execution of clean : Success "}
+          app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
+          Try { "user input: y" }
         }
-        case "n" => Try{"Execution of clean : Failure - user interruption"}
-        case _ => Try{"Please enter a valid char : y or n"}
+        case "n" => Try { "user input: n" }
+        case _ => {throw new InterruptedException(s"Please enter a valid char : y or n")
+        }
       }
     }
     case (retry @ commandLine.retryCmd) :: Nil =>

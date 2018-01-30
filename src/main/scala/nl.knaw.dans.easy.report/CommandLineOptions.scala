@@ -49,12 +49,14 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
 
     val fullCmd = new Subcommand("full") {
       val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      descr("creates a full report for depositor(optional)")
       footer(SUBCOMMAND_SEPARATOR)
     }
     addSubcommand(fullCmd)
 
     val summaryCmd = new Subcommand("summary") {
       val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      descr("creates a summary report for depositor(optional)")
       footer(SUBCOMMAND_SEPARATOR)
     }
     addSubcommand(summaryCmd)
@@ -63,10 +65,13 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
 
   val cleanCmd = new Subcommand("clean") {
     val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
-    val dataOnly = opt[Boolean](default= None, required = false)
-    val state = opt[String](default = Some("DRAFT"), required = false)
-    val keep = opt[Int](default = Some(-1), required = false)
-
+    val dataOnly = opt[Boolean](default = None, descr="If specified, the deposit.properties and the container file of the deposit are not deleted") //(default= None)
+    val state = opt[String](default = Some("DRAFT"), descr="The deposits with the specified state argument are deleted")
+    val keep = opt[Int]( default = Some(-1), descr="The deposits whose ages are strictly greater than the argument n (days) are deleted. An age argument of n=0 days corresponds to 0<=n<1. The default case is set to n=-1, so that the deposits that are younger than 1 day are not skipped in the default case.")
+    //For keep option, the deposits whose ages are strictly greater than the argument n (days) are deleted.
+    // An age argument of n=0 days corresponds to 0<=n<1. The default case is set to n=-1,
+    // so that the deposits that are younger than 1 day are not skipped in the default case. (default = -1)
+    // validate = (-1<)
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(cleanCmd)

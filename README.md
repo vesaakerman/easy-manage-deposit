@@ -20,36 +20,42 @@ ARGUMENTS
                 --version   Show version of this program
         
           Subcommand: report
-                --help   Show help message
-        
-          Subcommand: report full
-                --help   Show help message
-        
-           trailing arguments:
-            depositor (not required)
-          ---
-        
-          Subcommand: report summary
-                --help   Show help message
-        
-           trailing arguments:
-            depositor (not required)
-          ---
-          Subcommand: clean
-            -d, --data-only       
-            -k, --keep  <arg>     (default = -1)
-            -s, --state  <arg>    (default = DRAFT)
-                --help           Show help message
-                
-           trailing arguments:
-            depositor (not required)
-          ---
+                  --help   Show help message
           
-          Subcommand: retry
-                --help   Show help message
-
-           trailing arguments:
-            depositor (not required)
+            Subcommand: report full - creates a full report for depositor(optional)
+                  --help   Show help message
+          
+             trailing arguments:
+              depositor (not required)
+            ---
+          
+            Subcommand: report summary - creates a summary report for depositor(optional)
+                  --help   Show help message
+          
+             trailing arguments:
+              depositor (not required)
+            ---
+            Subcommand: clean
+              -d, --data-only      If specified, the deposit.properties and the container
+                                   file of the deposit are not deleted
+              -k, --keep  <arg>    The deposits whose ages are strictly greater than the
+                                   argument n (days) are deleted. An age argument of n=0
+                                   days corresponds to 0<=n<1. The default case is set to
+                                   n=-1, so that the deposits that are younger than 1 day
+                                   are not skipped in the default case. (default = -1)
+              -s, --state  <arg>   The deposits with the specified state argument are
+                                   deleted (default = DRAFT)
+                  --help           Show help message
+          
+             trailing arguments:
+              depositor (not required)
+            ---
+          
+            Subcommand: retry
+                  --help   Show help message
+          
+             trailing arguments:
+              depositor (not required)
      ---
     
      
@@ -61,13 +67,13 @@ Manages the deposits in the deposit area.
 EXAMPLES
 --------
 
-     easy-manage-deposit report full < UserId of the depositor >
-     easy-manage-deposit report summary < UserId of the depositor >
-     easy-manage-deposit report full < UserId of the depositor >
-     easy-manage-deposit report summary < UserId of the depositor >
-     easy-manage-deposit clean < UserId of the depositor >
-     easy-manage-deposit clean --data-only --state <state> --keep <n> < UserId of the depositor >
-     easy-manage-deposit retry < UserId of the depositor >
+     easy-manage-deposit report full someUserId
+     easy-manage-deposit report summary someUserId
+     easy-manage-deposit report full someUserId
+     easy-manage-deposit report summary someUserId
+     easy-manage-deposit clean someUserId
+     easy-manage-deposit clean --data-only --state <state> --keep <n> someUserId
+     easy-manage-deposit retry someUserId
 
 
 INSTALLATION AND CONFIGURATION
