@@ -51,8 +51,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor))
   }
 
-  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, dataOption: Boolean): Unit = {
-    depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor, age, state, dataOption))
+  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Unit = {
+    depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor, age, state, onlyData))
   }
 
   def retryStalledDeposit(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
@@ -86,34 +86,25 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       }
   }
 
-  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, dataOption: Boolean)(list: List[Path]): Unit = {
+  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Unit = {
     list.filter(isDirectory(_))
       .foreach { depositDirPath =>
-        val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
+        val depositProperties: PropertiesConfiguration = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
         val depositorId = depositProperties.getString("depositor.userId")
         val creationTime = depositProperties.getString("creation.timestamp")
         val depositState = depositProperties.getString("state.label")
         val start = new DateTime(creationTime)
         val duration = new Duration(start, end)
         val depositAge = duration.getStandardDays
-        val depositAge2 = duration.getStandardMinutes
-
-        println(dataOption)
 
         // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-        if (filterOnDepositor.forall(depositorId ==)) {
-          if ((depositAge > age) && (depositState == state)) {
-            if (dataOption == false)
-              deleteDirectory(depositDirPath.toFile)
-            if (dataOption == true) {
-              depositDirPath.toFile.listFiles().foreach(file => {
-                println(file.getName)
-                if (file.getName != "deposit.properties")
-                  deleteDirectory(file)
+        if (filterOnDepositor.forall(depositorId ==) && depositAge > age && depositState == state) {
+            if (onlyData) {
+              for (file <- depositDirPath.toFile.listFiles();  if file.getName != "deposit.properties") {
+                deleteDirectory(file)
               }
-              )
             }
-          }
+            else deleteDirectory(depositDirPath.toFile)
         }
       }
   }
@@ -261,9 +252,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "STALLED states were replaced by SUBMITTED states."
   }
 
-  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, dataOption: Boolean): Try[String] = Try {
-    deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, dataOption)
-    deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, dataOption)
-    "Execution of clean : Success "
+  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[String] = Try {
+    deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData)
+    deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData)
+    "Execution of clean: success "
   }
 }

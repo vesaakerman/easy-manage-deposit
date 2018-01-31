@@ -31,26 +31,45 @@ object Command extends App with DebugEnhancedLogging {
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
   val app = new EasyManageDepositApp(configuration)
 
+  def cleanInteraction: Boolean = {
+    StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
+      case "y" => true
+      case "n" => false
+      case _ =>
+        println("Please enter a valid char : y or n")
+        cleanInteraction
+    }
+  }
+
   val result: Try[FeedBackMessage] = commandLine.subcommands match {
     case commandLine.reportCmd :: (full @ commandLine.reportCmd.fullCmd) :: Nil =>
       app.createFullReport(full.depositor.toOption)
     case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
       app.summary(summary.depositor.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil => {
-      Console.println("This action will delete data from the deposit area. OK? (y/n):")
-      StdIn.readLine() match {
-        case "y" => {
-          app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
-          Try { "user input: y" }
-        }
-        case "n" => Try { "user input: n" }
-        case _ => {throw new InterruptedException(s"Please enter a valid char : y or n")
-        }
+      val doClean = cleanInteraction
+      if (doClean) {
+        app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
+          .map(msg => "user input: y")
       }
+      else {
+        Try { "Aborted by user" }
+      }
+
+//      StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
+//        case "y" => {
+//          app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
+//          Try { "user input: y" }
+//        }
+//        case "n" => Try { "user input: n" }
+//        case _ => throw new InterruptedException(s"Please enter a valid char : y or n")
+      //            Failure(new In..)
+//      }
     }
     case (retry @ commandLine.retryCmd) :: Nil =>
       app.retryDepositor(retry.depositor.toOption)
     case _ => Try { s"Unknown command: ${ commandLine.subcommand }" }
+              //Failure(new Exception)
   }
 
   result.doIfSuccess(msg => Console.err.println(s"OK: $msg"))
