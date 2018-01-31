@@ -55,31 +55,11 @@ object Command extends App with DebugEnhancedLogging {
       else {
         Try { "Aborted by user" }
       }
-
-//      StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
-//        case "y" => {
-//          app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
-//          Try { "user input: y" }
-//        }
-//        case "n" => Try { "user input: n" }
-//        case _ => throw new InterruptedException(s"Please enter a valid char : y or n")
-      //            Failure(new In..)
-//      }
     }
     case (retry @ commandLine.retryCmd) :: Nil =>
       app.retryDepositor(retry.depositor.toOption)
+
     case _ => Failure(new Exception("Enter a valid subcommand"))
-      
-    //case "" => Failure(new Exception("Enter a valid subcommand"))
-
-     // Try{commandLine.subcommand } match {case Success(_) => Failure(new Exception)}
-
-    //Try { s"Unknown command: ${ commandLine.subcommand }" }
-    //match {
-     // case Failure(_) => Try { "failure: Summary report easy-ingest-flow-inbox + easy-sword2 "  }
-     // case Success(_) => Try { "success: Summary report easy-ingest-flow + easy-sword2 " }
-    //}
-              //Failure(new Exception)
   }
 
   result.doIfSuccess(msg => Console.err.println(s"OK: $msg"))

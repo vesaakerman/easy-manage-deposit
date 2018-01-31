@@ -99,12 +99,12 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
         // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
         if (filterOnDepositor.forall(depositorId ==) && depositAge > age && depositState == state) {
-            if (onlyData) {
-              for (file <- depositDirPath.toFile.listFiles();  if file.getName != "deposit.properties") {
-                deleteDirectory(file)
-              }
+          if (onlyData) {
+            for (file <- depositDirPath.toFile.listFiles(); if file.getName != "deposit.properties") {
+              deleteDirectory(file)
             }
-            else deleteDirectory(depositDirPath.toFile)
+          }
+          else deleteDirectory(depositDirPath.toFile)
         }
       }
   }
