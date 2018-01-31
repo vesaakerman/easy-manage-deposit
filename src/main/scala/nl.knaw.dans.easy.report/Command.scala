@@ -22,7 +22,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
 import scala.io.StdIn
 import scala.language.reflectiveCalls
-import scala.util.Try
+import scala.util.{ Failure, Try }
 
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
@@ -68,7 +68,17 @@ object Command extends App with DebugEnhancedLogging {
     }
     case (retry @ commandLine.retryCmd) :: Nil =>
       app.retryDepositor(retry.depositor.toOption)
-    case _ => Try { s"Unknown command: ${ commandLine.subcommand }" }
+    case _ => Failure(new Exception("Enter a valid subcommand"))
+      
+    //case "" => Failure(new Exception("Enter a valid subcommand"))
+
+     // Try{commandLine.subcommand } match {case Success(_) => Failure(new Exception)}
+
+    //Try { s"Unknown command: ${ commandLine.subcommand }" }
+    //match {
+     // case Failure(_) => Try { "failure: Summary report easy-ingest-flow-inbox + easy-sword2 "  }
+     // case Success(_) => Try { "success: Summary report easy-ingest-flow + easy-sword2 " }
+    //}
               //Failure(new Exception)
   }
 
