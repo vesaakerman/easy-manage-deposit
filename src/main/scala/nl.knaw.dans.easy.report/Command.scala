@@ -20,22 +20,46 @@ import java.nio.file.Paths
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
+import scala.io.StdIn
 import scala.language.reflectiveCalls
-import scala.util.Try
-
+import scala.util.{ Failure, Try }
 
 object Command extends App with DebugEnhancedLogging {
   type FeedBackMessage = String
 
   val configuration = Configuration(Paths.get(System.getProperty("app.home")))
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
-  val app = new EasyDepositReportApp(configuration)
-  val result: Try[FeedBackMessage] = commandLine.subcommand match {
-    case Some(full @ commandLine.fullCmd) =>
+  val app = new EasyManageDepositApp(configuration)
+
+  def cleanInteraction: Boolean = {
+    StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
+      case "y" => true
+      case "n" => false
+      case _ =>
+        println("Please enter a valid char : y or n")
+        cleanInteraction
+    }
+  }
+
+  val result: Try[FeedBackMessage] = commandLine.subcommands match {
+    case commandLine.reportCmd :: (full @ commandLine.reportCmd.fullCmd) :: Nil =>
       app.createFullReport(full.depositor.toOption)
-    case Some(summary @ commandLine.summaryCmd) =>
+    case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
       app.summary(summary.depositor.toOption)
-    case _ => Try { s"Unknown command: ${ commandLine.subcommand }" }
+    case (clean @ commandLine.cleanCmd) :: Nil => {
+      val doClean = cleanInteraction
+      if (doClean) {
+        app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
+          .map(msg => "user input: y")
+      }
+      else {
+        Try { "Aborted by user" }
+      }
+    }
+    case (retry @ commandLine.retryCmd) :: Nil =>
+      app.retryDepositor(retry.depositor.toOption)
+
+    case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))
   }
 
   result.doIfSuccess(msg => Console.err.println(s"OK: $msg"))

@@ -17,5 +17,5 @@
 
 echo -n "Pre-creating log..."
 TEMPDIR=data
-touch $TEMPDIR/easy-deposit-report.log
+touch $TEMPDIR/easy-manage-deposit.log
 echo "OK"
