@@ -59,7 +59,7 @@ object Command extends App with DebugEnhancedLogging {
     case (retry @ commandLine.retryCmd) :: Nil =>
       app.retryDepositor(retry.depositor.toOption)
 
-    case _ => Failure(new Exception("Enter a valid subcommand"))
+    case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))
   }
 
   result.doIfSuccess(msg => Console.err.println(s"OK: $msg"))
