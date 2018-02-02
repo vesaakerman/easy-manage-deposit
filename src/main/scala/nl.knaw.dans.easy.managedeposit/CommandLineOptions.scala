@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.easy.report
+package nl.knaw.dans.easy.managedeposit
 
 import org.rogach.scallop.{ ScallopConf, ScallopOption, Subcommand }
 

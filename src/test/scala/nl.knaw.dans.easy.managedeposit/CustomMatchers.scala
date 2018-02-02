@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package nl.knaw.dans.easy.report
+package nl.knaw.dans.easy.managedeposit
 
 import java.io.File
 

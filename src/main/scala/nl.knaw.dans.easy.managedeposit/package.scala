@@ -23,7 +23,7 @@ import resource._
 
 import scala.collection.JavaConverters._
 
-package object report {
+package object managedeposit {
 
   type DepositId = String
   type Deposits = Seq[Deposit]
