@@ -20,6 +20,7 @@ import java.nio.file.Paths
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
+import scala.annotation.tailrec
 import scala.io.StdIn
 import scala.language.reflectiveCalls
 import scala.util.{ Failure, Try }
@@ -31,7 +32,8 @@ object Command extends App with DebugEnhancedLogging {
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
   val app = new EasyManageDepositApp(configuration)
 
-  def cleanInteraction: Boolean = {
+  @tailrec
+  private def cleanInteraction: Boolean = {
     StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
       case "y" => true
       case "n" => false
@@ -46,19 +48,13 @@ object Command extends App with DebugEnhancedLogging {
       app.createFullReport(full.depositor.toOption)
     case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
       app.summary(summary.depositor.toOption)
-    case (clean @ commandLine.cleanCmd) :: Nil => {
-      val doClean = cleanInteraction
-      if (doClean) {
+    case (clean @ commandLine.cleanCmd) :: Nil =>
+      if (cleanInteraction)
         app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
-          .map(msg => "user input: y")
-      }
-      else {
-        Try { "Aborted by user" }
-      }
-    }
+      else
+        Try { "Clean operation aborted by user" }
     case (retry @ commandLine.retryCmd) :: Nil =>
       app.retryDepositor(retry.depositor.toOption)
-
     case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))
   }
 

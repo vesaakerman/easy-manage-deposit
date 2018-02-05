@@ -66,7 +66,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
     val dataOnly: ScallopOption[Boolean] = opt[Boolean](descr = "If specified, the deposit.properties and the container file of the deposit are not deleted")
     val state: ScallopOption[String] = opt[String](default = Some("DRAFT"), descr = "The deposits with the specified state argument are deleted")
-    val keep: ScallopOption[Int] = opt[Int](default = Some(-1), validate = (-1 <=), descr = "The deposits whose ages are strictly greater than the argument n (days) are deleted. An age argument of n=0 days corresponds to 0<=n<1. The default case is set to n=-1, so that the deposits that are younger than 1 day are not skipped in the default case.")
+    val keep: ScallopOption[Int] = opt[Int](default = Some(-1), validate = -1 <=, descr = "The deposits whose ages are strictly greater than the argument n (days) are deleted. An age argument of n=0 days corresponds to 0<=n<1. The default case is set to n=-1, so that the deposits that are younger than 1 day are not skipped in the default case.")
     footer(SUBCOMMAND_SEPARATOR)
   }
   addSubcommand(cleanCmd)

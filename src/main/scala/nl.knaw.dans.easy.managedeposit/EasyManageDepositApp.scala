@@ -15,27 +15,22 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.Files._
-import java.nio.file._
+import java.nio.file.{ Files, Path, Paths }
 import java.text.SimpleDateFormat
-import java.time._
-import java.util.{ Calendar, Date }
+import java.util.Calendar
 
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
-import org.apache.commons.io.FileUtils.{ deleteDirectory, readFileToString }
-import org.joda.time.{ DateTime, DateTimeZone, Duration, Interval }
+import org.joda.time.{ DateTime, DateTimeZone, Duration }
 import resource.managed
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.math.Ordering.{ Long => LongComparator }
 import scala.util.Try
-import scala.xml.parsing.ConstructingParser.fromSource
 import scala.xml.{ NodeSeq, XML }
-
 
 class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging {
   private val KB = 1024L
@@ -46,7 +41,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   private val sword2DepositsDir = Paths.get(configuration.properties.getString("easy-sword2"))
   private val ingestFlowInbox = Paths.get(configuration.properties.getString("easy-ingest-flow-inbox"))
 
-  val end = DateTime.now(DateTimeZone.UTC)
+  private val end = DateTime.now(DateTimeZone.UTC)
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor))
@@ -88,7 +83,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Unit = {
-    list.filter(isDirectory(_))
+    list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
         val depositProperties: PropertiesConfiguration = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
         val depositorId = depositProperties.getString("depositor.userId")
@@ -102,20 +97,18 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         if (filterOnDepositor.forall(depositorId ==) && depositAge > age && depositState == state) {
           if (onlyData) {
             for (file <- depositDirPath.toFile.listFiles(); if file.getName != "deposit.properties") {
-              deleteDirectory(file)
+              FileUtils.deleteDirectory(file)
             }
           }
-          else deleteDirectory(depositDirPath.toFile)
+          else FileUtils.deleteDirectory(depositDirPath.toFile)
         }
       }
   }
 
   def retryStalledDeposit(filterOnDepositor: Option[DepositorId])(list: List[Path]): Unit = {
-    list.filter(isDirectory(_))
+    list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
-        val propsFile = depositDirPath.resolve("deposit.properties").toFile
-        val propsContent = readFileToString(propsFile)
         val depositorId = depositProperties.getString("depositor.userId")
         val depositState = depositProperties.getString("state.label")
 
@@ -140,11 +133,11 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
   private def getDoi(depositProperties: PropertiesConfiguration, depositDirPath: Path): Option[String] = {
     Option(depositProperties.getString("identifier.doi")).orElse {
-      managed(list(depositDirPath)).acquireAndGet { files =>
+      managed(Files.list(depositDirPath)).acquireAndGet { files =>
         files.iterator().asScala.toStream
-          .collectFirst { case bagDir if isDirectory(bagDir) => bagDir.resolve("metadata/dataset.xml") }
+          .collectFirst { case bagDir if Files.isDirectory(bagDir) => bagDir.resolve("metadata/dataset.xml") }
           .flatMap {
-            case datasetXml if exists(datasetXml) => Try {
+            case datasetXml if Files.exists(datasetXml) => Try {
               val docElement = XML.loadFile(datasetXml.toFile)
               findDoi(docElement \\ "dcmiMetadata" \\ "identifier")
             }.getOrElse(None)
@@ -250,7 +243,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def retryDepositor(depositor: Option[DepositorId]): Try[String] = Try {
-    val ingestFlowDeposits = retryStalledDeposit(ingestFlowInbox, depositor)
+    retryStalledDeposit(ingestFlowInbox, depositor)
     "STALLED states were replaced by SUBMITTED states."
   }
 
