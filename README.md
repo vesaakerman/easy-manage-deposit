@@ -1,50 +1,79 @@
-easy-deposit-report
+easy-manage-deposit
 ===========
-[![Build Status](https://travis-ci.org/DANS-KNAW/easy-deposit-report.png?branch=master)](https://travis-ci.org/DANS-KNAW/easy-deposit-report)
+[![Build Status](https://travis-ci.org/DANS-KNAW/easy-manage-deposit.png?branch=master)](https://travis-ci.org/DANS-KNAW/easy-manage-deposit)
 
 
 SYNOPSIS
 --------
    
-     easy-deposit-report full [<depositor>]
-     easy-deposit-report summary [<depositor>]
+     easy-manage-deposit report full [<depositor>]
+     easy-manage-deposit report summary [<depositor>]
+     easy-manage-deposit clean --data-only --state [<state>] --keep [<n>][<depositor>]
+     easy-manage-deposit retry [<depositor>]
      
+         
 ARGUMENTS
 --------
    
      Options:
-   
-     
-         --help      Show help message
-         --version   Show version of this program
-   
-     Subcommand: full
-         --help   Show help message
-         
-      trailing arguments:
-       depositor (not required)
-     ---
-   
-     Subcommand: summary
-         --help   Show help message
-         
-      trailing arguments:
-       depositor (not required) 
+                --help      Show help message
+                --version   Show version of this program
+        
+          Subcommand: report
+                  --help   Show help message
+          
+            Subcommand: report full - creates a full report for depositor(optional)
+                  --help   Show help message
+          
+             trailing arguments:
+              depositor (not required)
+            ---
+          
+            Subcommand: report summary - creates a summary report for depositor(optional)
+                  --help   Show help message
+          
+             trailing arguments:
+              depositor (not required)
+            ---
+            Subcommand: clean
+              -d, --data-only      If specified, the deposit.properties and the container
+                                   file of the deposit are not deleted
+              -k, --keep  <arg>    The deposits whose ages are strictly greater than the
+                                   argument n (days) are deleted. An age argument of n=0
+                                   days corresponds to 0<=n<1. The default case is set to
+                                   n=-1, so that the deposits that are younger than 1 day
+                                   are not skipped in the default case. (default = -1)
+              -s, --state  <arg>   The deposits with the specified state argument are
+                                   deleted (default = DRAFT)
+                  --help           Show help message
+          
+             trailing arguments:
+              depositor (not required)
+            ---
+          
+            Subcommand: retry
+                  --help   Show help message
+          
+             trailing arguments:
+              depositor (not required)
      ---
     
      
 DESCRIPTION
 -----------
 
-Creates report about the deposits in the deposit area.
+Manages the deposits in the deposit area.
      
 EXAMPLES
 --------
 
-     easy-deposit-report full mendeleydata
-     easy-deposit-report summary mendeleydata
-     easy-deposit-report full dryad
-     easy-deposit-report summary dryad
+     easy-manage-deposit report full someUserId
+     easy-manage-deposit report summary someUserId
+     easy-manage-deposit report full someUserId
+     easy-manage-deposit report summary someUserId
+     easy-manage-deposit clean someUserId
+     easy-manage-deposit clean --data-only --state <state> --keep <n> someUserId
+     easy-manage-deposit retry someUserId
 
 
 INSTALLATION AND CONFIGURATION
@@ -52,11 +81,11 @@ INSTALLATION AND CONFIGURATION
 
 
 1. Unzip the tarball to a directory of your choice, typically `/usr/local/`
-2. A new directory called easy-deposit-report-<version> will be created
+2. A new directory called easy-manage-deposit-<version> will be created
 3. Add the command script to your `PATH` environment variable by creating a symbolic link to it from a directory that is
    on the path, e.g. 
    
-        ln -s /usr/local/easy-deposit-report-<version>/bin/easy-deposit-report /usr/bin
+        ln -s /usr/local/easy-manage-deposit-<version>/bin/easy-manage-deposit /usr/bin
 
 
 
@@ -74,6 +103,6 @@ Prerequisites:
 
 Steps:
 
-        git clone https://github.com/DANS-KNAW/easy-deposit-report.git
-        cd easy-deposit-report
+        git clone https://github.com/DANS-KNAW/easy-manage-deposit.git
+        cd easy-manage-deposit
         mvn install
