@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy
 
-import java.nio.file.Files.walkFileTree
 import java.nio.file.{ Files, Path }
 
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
