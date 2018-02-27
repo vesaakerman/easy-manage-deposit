@@ -32,7 +32,7 @@
     <description>Manages the deposits in the deposit area.</description>
     <inceptionYear>2017</inceptionYear>
     <properties>
-        <main-class>nl.knaw.dans.easy.report.Command</main-class>
+        <main-class>nl.knaw.dans.easy.managedeposit.Command</main-class>
     </properties>
     <scm>
         <developerConnection>scm:git:https://github.com/DANS-KNAW/easy-manage-deposit</developerConnection>
