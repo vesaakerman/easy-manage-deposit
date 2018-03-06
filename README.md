@@ -7,8 +7,8 @@ SYNOPSIS
 --------
    
      easy-manage-deposit report full [--age, -a <n>] [<depositor>]
-     easy-manage-deposit report summary [--age|-a <n>] [<depositor>]
-     easy-manage-deposit clean [--data-only|-d] [--state|-s <state>] [--keep|-k <n>] [<depositor>]
+     easy-manage-deposit report summary [--age, -a <n>] [<depositor>]
+     easy-manage-deposit clean [--data-only, -d] [--state, -s <state>] [--keep, -k <n>] [<depositor>]
      easy-manage-deposit retry [<depositor>]
      
          
