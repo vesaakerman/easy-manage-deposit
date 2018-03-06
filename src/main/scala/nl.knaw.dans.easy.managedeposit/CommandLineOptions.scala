@@ -29,7 +29,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     s"""
        |  $printedName report full [{--age|-a} <n>] [<depositor>]
        |  $printedName report summary [{--age|-a} <n>] [<depositor>]
-       |  $printedName clean [{--data-only}] [{--state} <state>] [{--keep} <n>] [<depositor>]
+       |  $printedName clean [{--data-only|-d}] [{--state|-s} <state>] [{--keep|-k} <n>] [<depositor>]
        |  $printedName retry [<depositor>]
      """.stripMargin
   version(s"$printedName v${ configuration.version }")
