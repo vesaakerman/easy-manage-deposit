@@ -27,9 +27,9 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val description: String = s"""Manages the deposits in the deposit area."""
   val synopsis: String =
     s"""
-       |  $printedName report full [<depositor>]
-       |  $printedName report summary [<depositor>]
-       |  $printedName clean --data-only --state [<state>] --keep [<n>][<depositor>]
+       |  $printedName report full [{--age|-a} <n>] [<depositor>]
+       |  $printedName report summary [{--age|-a} <n>] [<depositor>]
+       |  $printedName clean [{--data-only}] [{--state} <state>] [{--keep} <n>] [<depositor>]
        |  $printedName retry [<depositor>]
      """.stripMargin
   version(s"$printedName v${ configuration.version }")

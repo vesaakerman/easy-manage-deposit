@@ -42,6 +42,6 @@ package object managedeposit {
   }
 
   implicit class Optional2Option[T](val opt: Optional[T]) extends AnyVal {
-    def toOption: Option[T] = opt.map(Option(_)).orElse(None)
+    def toOption: Option[T] = opt.map[Option[T]](Option(_)).orElse(None)
   }
 }

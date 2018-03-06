@@ -131,7 +131,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     managed(Files.list(depositDirPath)).acquireAndGet { files =>
       files.map[Long](Files.getLastModifiedTime(_).toInstant.toEpochMilli)
         .max(LongComparator)
-        .map(millis => new DateTime(millis, DateTimeZone.UTC))
+        .map[DateTime](millis => new DateTime(millis, DateTimeZone.UTC))
         .toOption
     }
   }
