@@ -43,8 +43,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
   private val end = DateTime.now(DateTimeZone.UTC)
 
-  private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Deposits = {
-    depositsDir.list(collectDataFromDepositsDir(filterOnDepositor))
+  private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age]): Deposits = {
+    depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge))
   }
 
   def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Unit = {
@@ -55,7 +55,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(retryStalledDeposit(filterOnDepositor))
   }
 
-  private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId])(deposits: List[Path]): Deposits = {
+  private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age])(deposits: List[Path]): Deposits = {
     trace(filterOnDepositor)
     deposits.filter(Files.isDirectory(_))
       .flatMap { depositDirPath =>
@@ -64,8 +64,13 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
         val depositorId = depositProperties.getString("depositor.userId")
 
+        lazy val lastModified: Option[DateTime] = getLastModifiedTimestamp(depositDirPath)
+
         // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-        if (filterOnDepositor.forall(depositorId ==)) Some {
+        val hasDepositor = filterOnDepositor.forall(depositorId ==)
+        lazy val shouldReport = filterOnAge.forall(age => lastModified.forall(mod => Duration.millis(DateTime.now(mod.getZone).getMillis - mod.getMillis).getStandardDays <= age))
+
+        if (hasDepositor && shouldReport) Some {
           Deposit(
             depositId = depositId,
             doi = getDoi(depositProperties, depositDirPath),
@@ -75,7 +80,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
             creationTimestamp = Option(depositProperties.getString("creation.timestamp")).getOrElse("n/a"),
             depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
             storageSpace = FileUtils.sizeOfDirectory(depositDirPath.toFile),
-            lastModified = getLastModifiedTimestamp(depositDirPath)
+            lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse("n/a")
           )
         }
         else None
@@ -122,12 +127,12 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       }
   }
 
-  private def getLastModifiedTimestamp(depositDirPath: Path): String = {
+  private def getLastModifiedTimestamp(depositDirPath: Path): Option[DateTime] = {
     managed(Files.list(depositDirPath)).acquireAndGet { files =>
       files.map[Long](Files.getLastModifiedTime(_).toInstant.toEpochMilli)
         .max(LongComparator)
-        .map[String](millis => new DateTime(millis, DateTimeZone.UTC).toString(dateTimeFormatter))
-        .orElse("n/a")
+        .map[DateTime](millis => new DateTime(millis, DateTimeZone.UTC))
+        .toOption
     }
   }
 
@@ -228,16 +233,16 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     f"${ filterOnState }%-10s : ${ deposits.size }%5d (${ formatStorageSize(deposits.map(_.storageSpace).sum) })"
   }
 
-  def summary(depositor: Option[DepositorId] = None): Try[String] = Try {
-    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor)
-    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor)
+  def summary(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
+    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
+    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
     outputSummary(sword2Deposits ++ ingestFlowDeposits, depositor)
     "End of summary report."
   }
 
-  def createFullReport(depositor: Option[DepositorId]): Try[String] = Try {
-    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor)
-    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor)
+  def createFullReport(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
+    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
+    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
     outputFullReport(sword2Deposits ++ ingestFlowDeposits)
     "End of full report."
   }

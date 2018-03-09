@@ -27,9 +27,9 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   val description: String = s"""Manages the deposits in the deposit area."""
   val synopsis: String =
     s"""
-       |  $printedName report full [<depositor>]
-       |  $printedName report summary [<depositor>]
-       |  $printedName clean --data-only --state [<state>] --keep [<n>][<depositor>]
+       |  $printedName report full [-a, --age <n>] [<depositor>]
+       |  $printedName report summary [-a, --age <n>] [<depositor>]
+       |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [<depositor>]
        |  $printedName retry [<depositor>]
      """.stripMargin
   version(s"$printedName v${ configuration.version }")
@@ -48,6 +48,8 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
 
     val fullCmd = new Subcommand("full") {
       val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      val age: ScallopOption[Age] = opt[Age](name = "age", short = 'a', validate = 0 <=,
+        descr = "Only report on the deposits that are less than n days old. An age argument of n=0 days corresponds to 0<=n<1. If this argument is nog provided, all deposits will be reported on.")
       descr("creates a full report for depositor(optional)")
       footer(SUBCOMMAND_SEPARATOR)
     }
@@ -55,6 +57,8 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
 
     val summaryCmd = new Subcommand("summary") {
       val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      val age: ScallopOption[Age] = opt[Age](name = "age", short = 'a', validate = 0 <=,
+        descr = "Only report on the deposits that are less than n days old. An age argument of n=0 days corresponds to 0<=n<1. If this argument is nog provided, all deposits will be reported on.")
       descr("creates a summary report for depositor(optional)")
       footer(SUBCOMMAND_SEPARATOR)
     }
