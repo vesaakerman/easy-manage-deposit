@@ -88,7 +88,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Unit = {
-    logger.info(s"DELETING ($onlyData ? data from : ) deposits")
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
         val depositProperties: PropertiesConfiguration = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
@@ -116,7 +115,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def retryStalledDeposit(filterOnDepositor: Option[DepositorId])(list: List[Path]): Unit = {
-    logger.info("RESETTING to SUBMITTED")
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
