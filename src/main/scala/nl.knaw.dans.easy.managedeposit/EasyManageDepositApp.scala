@@ -88,6 +88,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Unit = {
+    logger.info(s"DELETING ($onlyData ? data from : ) deposits")
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
         val depositProperties: PropertiesConfiguration = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
@@ -102,15 +103,20 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         if (filterOnDepositor.forall(depositorId ==) && depositAge > age && depositState == state) {
           if (onlyData) {
             for (file <- depositDirPath.toFile.listFiles(); if file.getName != "deposit.properties") {
+              logger.info(s"DELETE data from deposit for $depositorId from $depositState $depositDirPath")
               FileUtils.deleteDirectory(file)
             }
           }
-          else FileUtils.deleteDirectory(depositDirPath.toFile)
+          else {
+            logger.info(s"DELETE deposit for $depositorId from $depositState $depositDirPath")
+            FileUtils.deleteDirectory(depositDirPath.toFile)
+          }
         }
       }
   }
 
   def retryStalledDeposit(filterOnDepositor: Option[DepositorId])(list: List[Path]): Unit = {
+    logger.info("RESETTING to SUBMITTED")
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
         val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
@@ -120,6 +126,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
         if (filterOnDepositor.forall(depositorId ==)) {
           if (depositState == "STALLED") {
+            logger.info(s"RESET to SUBMITTED for $depositorId on $depositDirPath")
             depositProperties.setProperty("state.label", "SUBMITTED")
             depositProperties.save()
           }
