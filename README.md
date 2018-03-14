@@ -25,7 +25,7 @@ ARGUMENTS
           Subcommand: report full - creates a full report for depositor(optional)
             -a, --age  <arg>   Only report on the deposits that are less than n days old.
                                An age argument of n=0 days corresponds to 0<=n<1. If this
-                               argument is nog provided, all deposits will be reported on.
+                               argument is not provided, all deposits will be reported on.
                 --help         Show help message
           
            trailing arguments:
@@ -35,13 +35,13 @@ ARGUMENTS
           Subcommand: report summary - creates a summary report for depositor(optional)
             -a, --age  <arg>   Only report on the deposits that are less than n days old.
                                An age argument of n=0 days corresponds to 0<=n<1. If this
-                               argument is nog provided, all deposits will be reported on.
+                               argument is not provided, all deposits will be reported on.
                 --help         Show help message
           
            trailing arguments:
             depositor (not required)
           ---
-          Subcommand: clean
+          Subcommand: clean - removes deposit with specified state
             -d, --data-only      If specified, the deposit.properties and the container
                                  file of the deposit are not deleted
             -k, --keep  <arg>    The deposits whose ages are strictly greater than the

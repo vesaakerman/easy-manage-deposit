@@ -102,10 +102,14 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         if (filterOnDepositor.forall(depositorId ==) && depositAge > age && depositState == state) {
           if (onlyData) {
             for (file <- depositDirPath.toFile.listFiles(); if file.getName != "deposit.properties") {
+              logger.info(s"DELETE data from deposit for $depositorId from $depositState $depositDirPath")
               FileUtils.deleteDirectory(file)
             }
           }
-          else FileUtils.deleteDirectory(depositDirPath.toFile)
+          else {
+            logger.info(s"DELETE deposit for $depositorId from $depositState $depositDirPath")
+            FileUtils.deleteDirectory(depositDirPath.toFile)
+          }
         }
       }
   }
@@ -120,6 +124,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
         if (filterOnDepositor.forall(depositorId ==)) {
           if (depositState == "STALLED") {
+            logger.info(s"RESET to SUBMITTED for $depositorId on $depositDirPath")
             depositProperties.setProperty("state.label", "SUBMITTED")
             depositProperties.save()
           }

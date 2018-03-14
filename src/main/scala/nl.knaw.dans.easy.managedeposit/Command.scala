@@ -49,6 +49,7 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (summary @ commandLine.reportCmd.summaryCmd) :: Nil =>
       app.summary(summary.depositor.toOption, summary.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
+      Console.out.println(s"Deleting ${ if(clean.dataOnly()) "data from " else "" }deposits with state ${clean.state()} for ${clean.depositor.toOption.getOrElse("all users")}")
       if (cleanInteraction)
         app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
       else
