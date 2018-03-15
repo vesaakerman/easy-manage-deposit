@@ -52,19 +52,19 @@ exit_if_failed() {
 }
 
 echo -n "Creating summary report for ${EASY_ACCOUNT:-all depositors}..."
-/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit summary $EASY_ACCOUNT > $REPORT_SUMMARY
+/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit report summary $EASY_ACCOUNT > $REPORT_SUMMARY
 exit_if_failed "summary report failed"
 
 echo -n "Creating summary report from the last 24 hours for ${EASY_ACCOUNT:-all depositors}..."
-/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit summary --age 0 $EASY_ACCOUNT > $REPORT_SUMMARY_24
+/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit report summary --age 0 $EASY_ACCOUNT > $REPORT_SUMMARY_24
 exit_if_failed "summary report failed"
 
 echo -n "Creating full report for ${EASY_ACCOUNT:-all depositors}..."
-/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit full $EASY_ACCOUNT > $REPORT_FULL
+/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit report full $EASY_ACCOUNT > $REPORT_FULL
 exit_if_failed "full report failed"
 
 echo -n "Creating full report from the last 24 hours for ${EASY_ACCOUNT:-all depositors}..."
-/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit full --age 0 $EASY_ACCOUNT > $REPORT_FULL_24
+/opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit report full --age 0 $EASY_ACCOUNT > $REPORT_FULL_24
 exit_if_failed "full report failed"
 
 echo "Status of $EASY_HOST deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \
