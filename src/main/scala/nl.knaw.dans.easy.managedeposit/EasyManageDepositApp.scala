@@ -83,7 +83,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
             doi = getDoi(depositProperties, depositDirPath),
             depositorId,
             state = depositProperties.getString("state.label"),
-            description = depositProperties.getString("state.description"),
+            description = depositProperties.getString("state.description").replaceAll("\n", "").replaceAll("\t", ""),
             creationTimestamp = Option(depositProperties.getString("creation.timestamp")).getOrElse("n/a"),
             depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
             storageSpace = FileUtils.sizeOfDirectory(depositDirPath.toFile),
