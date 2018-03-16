@@ -55,13 +55,20 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(retryStalledDeposit(filterOnDepositor))
   }
 
+  private def readDepositProperties(depositDir: Path): PropertiesConfiguration = {
+    new PropertiesConfiguration() {
+      setDelimiterParsingDisabled(true)
+      load(depositDir.resolve("deposit.properties").toFile)
+    }
+  }
+
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age])(deposits: List[Path]): Deposits = {
     trace(filterOnDepositor)
     deposits.filter(Files.isDirectory(_))
       .flatMap { depositDirPath =>
         debug(s"Getting info from $depositDirPath")
         val depositId = depositDirPath.getFileName.toString
-        val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
+        val depositProperties = readDepositProperties(depositDirPath)
         val depositorId = depositProperties.getString("depositor.userId")
 
         lazy val lastModified: Option[DateTime] = getLastModifiedTimestamp(depositDirPath)
@@ -90,7 +97,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Unit = {
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
-        val depositProperties: PropertiesConfiguration = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
+        val depositProperties = readDepositProperties(depositDirPath)
         val depositorId = depositProperties.getString("depositor.userId")
         val creationTime = depositProperties.getString("creation.timestamp")
         val depositState = depositProperties.getString("state.label")
@@ -117,7 +124,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   def retryStalledDeposit(filterOnDepositor: Option[DepositorId])(list: List[Path]): Unit = {
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
-        val depositProperties = new PropertiesConfiguration(depositDirPath.resolve("deposit.properties").toFile)
+        val depositProperties = readDepositProperties(depositDirPath)
         val depositorId = depositProperties.getString("depositor.userId")
         val depositState = depositProperties.getString("state.label")
 
