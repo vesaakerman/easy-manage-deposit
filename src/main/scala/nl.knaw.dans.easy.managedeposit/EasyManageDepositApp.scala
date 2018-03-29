@@ -67,8 +67,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     deposits.filter(Files.isDirectory(_))
       .flatMap { depositDirPath =>
         debug(s"Getting info from $depositDirPath")
-        val depositId = depositDirPath.getFileName.toString
         val depositProperties = readDepositProperties(depositDirPath)
+        val depositId = depositProperties.getString("bag-store.bag-id")
         val depositorId = depositProperties.getString("depositor.userId")
 
         lazy val lastModified: Option[DateTime] = getLastModifiedTimestamp(depositDirPath)
