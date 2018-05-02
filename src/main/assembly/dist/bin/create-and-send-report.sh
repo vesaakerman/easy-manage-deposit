@@ -19,10 +19,10 @@ if [ "$EASY_ACCOUNT" == "-" ]; then
 fi
 
 DATE=$(date +%Y-%m-%d)
-REPORT_SUMMARY=/tmp/report-summary-${EASY_ACCOUNT:-all}-$DATE.txt
-REPORT_SUMMARY_24=/tmp/report-summary-${EASY_ACCOUNT:-all}-yesterday-$DATE.txt
-REPORT_FULL=/tmp/report-full-${EASY_ACCOUNT:-all}-$DATE.csv
-REPORT_FULL_24=/tmp/report-full-${EASY_ACCOUNT:-all}-yesterday-$DATE.csv
+REPORT_SUMMARY=${TMPDIR}/report-summary-${EASY_ACCOUNT:-all}-$DATE.txt
+REPORT_SUMMARY_24=${TMPDIR}/report-summary-${EASY_ACCOUNT:-all}-yesterday-$DATE.txt
+REPORT_FULL=${TMPDIR}/report-full-${EASY_ACCOUNT:-all}-$DATE.csv
+REPORT_FULL_24=${TMPDIR}/report-full-${EASY_ACCOUNT:-all}-yesterday-$DATE.csv
 
 
 if [ "$FROM" == "" ]; then
@@ -67,11 +67,21 @@ echo -n "Creating full report from the last 24 hours for ${EASY_ACCOUNT:-all dep
 /opt/dans.knaw.nl/easy-manage-deposit/bin/easy-manage-deposit report full --age 0 $EASY_ACCOUNT > $REPORT_FULL_24
 exit_if_failed "full report failed"
 
-echo "Status of $EASY_HOST deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \
-mail -s "$EASY_HOST Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
-     -a $REPORT_SUMMARY \
-     -a $REPORT_SUMMARY_24 \
-     -a $REPORT_FULL \
-     -a $REPORT_FULL_24 \
-     $BCC_EMAILS $FROM_EMAIL $TO
-exit_if_failed "sending of e-mail failed"
+echo "Counting the number of lines in $REPORT_FULL_24; if there is only a header (a.k.a. 1 line), no deposits were found and sending a report is not needed..."
+LINE_COUNT=$(wc -l < "$REPORT_FULL_24")
+echo "Line count in $REPORT_FULL_24: $LINE_COUNT line(s)."
+
+if [ $LINE_COUNT -gt 1 ]; then
+    echo "New deposits detected, therefore sending a the report"
+
+    echo "Status of $EASY_HOST deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \
+    mail -s "$EASY_HOST Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
+         -a $REPORT_SUMMARY \
+         -a $REPORT_SUMMARY_24 \
+         -a $REPORT_FULL \
+         -a $REPORT_FULL_24 \
+         $BCC_EMAILS $FROM_EMAIL $TO
+    exit_if_failed "sending of e-mail failed"
+else
+    echo "No new deposits were done, therefore no report was sent."
+fi
