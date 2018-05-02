@@ -19,10 +19,10 @@ if [ "$EASY_ACCOUNT" == "-" ]; then
 fi
 
 DATE=$(date +%Y-%m-%d)
-REPORT_SUMMARY=/tmp/report-summary-${EASY_ACCOUNT:-all}-$DATE.txt
-REPORT_SUMMARY_24=/tmp/report-summary-${EASY_ACCOUNT:-all}-yesterday-$DATE.txt
-REPORT_FULL=/tmp/report-full-${EASY_ACCOUNT:-all}-$DATE.csv
-REPORT_FULL_24=/tmp/report-full-${EASY_ACCOUNT:-all}-yesterday-$DATE.csv
+REPORT_SUMMARY=${TMPDIR}/report-summary-${EASY_ACCOUNT:-all}-$DATE.txt
+REPORT_SUMMARY_24=${TMPDIR}/report-summary-${EASY_ACCOUNT:-all}-yesterday-$DATE.txt
+REPORT_FULL=${TMPDIR}/report-full-${EASY_ACCOUNT:-all}-$DATE.csv
+REPORT_FULL_24=${TMPDIR}/report-full-${EASY_ACCOUNT:-all}-yesterday-$DATE.csv
 
 
 if [ "$FROM" == "" ]; then
