@@ -16,17 +16,17 @@ ARGUMENTS
 --------
    
      Options:
-                --help      Show help message
-                --version   Show version of this program
+            -h, --help      Show help message
+            -v, --version   Show version of this program
         
           Subcommand: report
-                --help   Show help message
+            -h, --help   Show help message
           
           Subcommand: report full - creates a full report for depositor(optional)
             -a, --age  <arg>   Only report on the deposits that are less than n days old.
                                An age argument of n=0 days corresponds to 0<=n<1. If this
                                argument is not provided, all deposits will be reported on.
-                --help         Show help message
+            -h, --help         Show help message
           
            trailing arguments:
             depositor (not required)
@@ -36,7 +36,7 @@ ARGUMENTS
             -a, --age  <arg>   Only report on the deposits that are less than n days old.
                                An age argument of n=0 days corresponds to 0<=n<1. If this
                                argument is not provided, all deposits will be reported on.
-                --help         Show help message
+            -h, --help         Show help message
           
            trailing arguments:
             depositor (not required)
@@ -51,14 +51,14 @@ ARGUMENTS
                                  are not skipped in the default case. (default = -1)
             -s, --state  <arg>   The deposits with the specified state argument are
                                  deleted (default = DRAFT)
-                --help           Show help message
+            -h, --help           Show help message
           
            trailing arguments:
             depositor (not required)
           ---
           
           Subcommand: retry
-                --help   Show help message
+            -h, --help   Show help message
           
            trailing arguments:
             depositor (not required)
