@@ -35,6 +35,9 @@ package object managedeposit {
 
   val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
 
+  case class NotReadableException(path: Path, cause: Throwable = null)
+    extends Exception(s"""cannot read $path""", cause)
+
   implicit class PathExtensions(val path: Path) extends AnyVal {
     def list[T](f: List[Path] => T): T = {
       managed(Files.list(path)).acquireAndGet(stream => f(stream.iterator().asScala.toList))
