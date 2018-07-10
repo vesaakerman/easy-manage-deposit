@@ -98,7 +98,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
             state = depositProperties.getString("state.label"),
             description = depositProperties.getString("state.description"),
             creationTimestamp = Option(depositProperties.getString("creation.timestamp")).getOrElse("n/a"),
-            depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
+            numberOfContinuedDeposits = depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$"""))),
             storageSpace = FileUtils.sizeOfDirectory(depositDirPath.toFile),
             lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse("n/a")
           )
@@ -219,10 +219,10 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
             throw NotReadableException(bagDir)
           }
           if (Files.isReadable(bagDir)) {
-            if (!Files.isReadable(bagDir.resolve("metadata/dataset.xml"))) {
-              val pathOfDatasetXml = bagDir.resolve("metadata/dataset.xml")
-              logger.error(s"cannot read $pathOfDatasetXml")
-              throw NotReadableException(pathOfDatasetXml)
+            val datasetXml = bagDir.resolve("metadata").resolve("dataset.xml")
+            if (Files.exists(datasetXml) && !Files.isReadable(datasetXml)) {
+              logger.error(s"cannot read $datasetXml")
+              throw NotReadableException(datasetXml)
             }
           }
         }
@@ -230,7 +230,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     Option(depositProperties.getString("identifier.doi")).orElse {
       managed(Files.list(depositDirPath)).acquireAndGet { files =>
         files.iterator().asScala.toStream
-          .collectFirst { case bagDir if Files.isDirectory(bagDir) => bagDir.resolve("metadata/dataset.xml") }
+          .collectFirst { case bagDir if Files.isDirectory(bagDir) => bagDir.resolve("metadata").resolve("dataset.xml") }
           .flatMap {
             case datasetXml if Files.exists(datasetXml) => Try {
               val docElement = XML.loadFile(datasetXml.toFile)
