@@ -149,7 +149,7 @@
                         <configuration combine.children="override">
                             <group>Application/Archiving</group>
                             <requires combine.children="append">
-                                <require>mail</require>
+                                <require>mailx</require>
                             </requires>
                             <mappings combine.children="append">
                                 <mapping>
