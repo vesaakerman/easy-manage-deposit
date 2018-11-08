@@ -288,7 +288,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     println()
   }
 
-  private def outputFullReport(deposits: Deposits): Unit = {
+  private def printRecords(deposits: Deposits): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
       .withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DEPOSIT_CREATION_TIMESTAMP",
         "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
@@ -306,9 +306,22 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         deposit.lastModified,
         deposit.description,
         deposit.numberOfContinuedDeposits.toString,
-        deposit.storageSpace.toString
+        deposit.storageSpace.toString,
       )
     }
+  }
+
+  private def outputFullReport(deposits: Deposits): Unit = printRecords(deposits)
+
+  private def outputErrorReport(deposits: Deposits): Unit = {
+    printRecords(deposits.filter {
+      case Deposit(_, _, _, "INVALID", _, _, _, _, _) => true
+      case Deposit(_, _, _, "FAILED", _, _, _, _, _) => true
+      case Deposit(_, _, _, "REJECTED", _, _, _, _, _) => true
+      case Deposit(_, _, _, null, _, _, _, _, _) => true
+      // TODO add case for state == ARCHIVED && doiRegistered == false
+      case _ => false
+    })
   }
 
   private def formatStorageSize(nBytes: Long): String = {
@@ -339,6 +352,13 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
     outputFullReport(sword2Deposits ++ ingestFlowDeposits)
     "End of full report."
+  }
+
+  def createErrorReport(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
+    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
+    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
+    outputErrorReport(sword2Deposits ++ ingestFlowDeposits)
+    "End of error report."
   }
 
   def retryDepositor(depositor: Option[DepositorId]): Try[String] = Try {

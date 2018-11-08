@@ -63,6 +63,15 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
       footer(SUBCOMMAND_SEPARATOR)
     }
     addSubcommand(summaryCmd)
+
+    val errorCmd = new Subcommand("error") {
+      val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+      val age: ScallopOption[Age] = opt[Age](name = "age", short = 'a', validate = 0 <=,
+        descr = "Only report on the deposits that are less than n days old. An age argument of n=0 days corresponds to 0<=n<1. If this argument is not provided, all deposits will be reported on.")
+      descr("creates a report displaying all failed, rejected and invalid deposits for depositor(optional)")
+      footer(SUBCOMMAND_SEPARATOR)
+    }
+    addSubcommand(errorCmd)
   }
   addSubcommand(reportCmd)
 

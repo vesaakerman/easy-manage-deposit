@@ -18,7 +18,7 @@ ARGUMENTS
      Options:
             -h, --help      Show help message
             -v, --version   Show version of this program
-        
+          
           Subcommand: report
             -h, --help   Show help message
           
@@ -33,6 +33,16 @@ ARGUMENTS
           ---
           
           Subcommand: report summary - creates a summary report for depositor(optional)
+            -a, --age  <arg>   Only report on the deposits that are less than n days old.
+                               An age argument of n=0 days corresponds to 0<=n<1. If this
+                               argument is not provided, all deposits will be reported on.
+            -h, --help         Show help message
+          
+           trailing arguments:
+            depositor (not required)
+          ---
+          
+          Subcommand: report error - creates a report displaying all failed, rejected and invalid deposits for depositor(optional)
             -a, --age  <arg>   Only report on the deposits that are less than n days old.
                                An age argument of n=0 days corresponds to 0<=n<1. If this
                                argument is not provided, all deposits will be reported on.
@@ -73,8 +83,10 @@ Manages the deposits in the deposit area.
 EXAMPLES
 --------
 
+     easy-manage-deposit report error someUserId
      easy-manage-deposit report full someUserId
      easy-manage-deposit report summary someUserId
+     easy-manage-deposit report error -a 0 someUserId
      easy-manage-deposit report full -a 0 someUserId
      easy-manage-deposit report summary --age 2 someUserId
      easy-manage-deposit clean someUserId

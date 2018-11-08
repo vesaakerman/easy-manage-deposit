@@ -72,7 +72,7 @@ LINE_COUNT=$(wc -l < "$REPORT_FULL_24")
 echo "Line count in $REPORT_FULL_24: $LINE_COUNT line(s)."
 
 if [ $LINE_COUNT -gt 1 ]; then
-    echo "New deposits detected, therefore sending a the report"
+    echo "New deposits detected, therefore sending the report"
 
     echo "Status of $EASY_HOST deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \
     mail -s "$EASY_HOST Report: status of EASY deposits (${EASY_ACCOUNT:-all depositors})" \
