@@ -13,24 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package nl.knaw.dans.easy.managedeposit
 
-import org.apache.commons.lang.BooleanUtils
+import org.scalatest.{ FlatSpec, Matchers, OptionValues }
 
-case class Deposit(depositId: DepositId,
-                   identifier: Identifier,
-                   depositor: DepositorId,
-                   state: String,
-                   description: String,
-                   creationTimestamp: String,
-                   numberOfContinuedDeposits: Int,
-                   storageSpace: Long,
-                   lastModified: String)
+class DepositSpec extends FlatSpec with Matchers with OptionValues {
 
+  "registeredString" should "return yes when its value is true" in {
+    val doi = Doi(Option("doi_id"), Option(true))
+    doi.registeredString.value shouldBe "yes"
+  }
 
-case class Identifier(fedora: Option[String], doi: Doi)
+  it should "return no when the boolean is false" in {
+    val doi = Doi(Option("doi_id"), Option(false))
+    doi.registeredString.value shouldBe "no"
+  }
 
-case class Doi(value: Option[String] = None, registered: Option[Boolean] = None) {
-  def registeredString: Option[String] = registered.map(BooleanUtils.toStringYesNo)
+  it should "return a None when the boolean is null" in {
+    val doi = Doi()
+    doi.registeredString shouldBe None
+  }
 }

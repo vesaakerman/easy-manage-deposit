@@ -23,6 +23,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
+import org.apache.commons.lang.BooleanUtils
 import org.joda.time.{ DateTime, DateTimeZone, Duration }
 import resource.managed
 
@@ -93,7 +94,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         if (hasDepositor && shouldReport) Some {
           Deposit(
             depositId = depositId,
-            doi = getDoi(depositProperties, depositDirPath),
+            identifier = getIdentifier(depositDirPath, depositProperties),
             depositorId,
             state = depositProperties.getString("state.label"),
             description = depositProperties.getString("state.description"),
@@ -105,6 +106,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         }
         else None
       }
+  }
+
+  private def getIdentifier(depositDirPath: Path, depositProperties: PropertiesConfiguration) : Identifier = {
+    val doi = Doi(
+      getDoi(depositProperties, depositDirPath),
+      Option(depositProperties.getString("identifier.doi.registered")).map(BooleanUtils.toBoolean)
+    )
+    val fedoraId = Option(depositProperties.getString("identifier.fedora"))
+    Identifier(fedoraId, doi)
   }
 
   def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Unit = {
@@ -290,7 +300,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
   private def printRecords(deposits: Deposits): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
-      .withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DEPOSIT_CREATION_TIMESTAMP",
+      .withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
         "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
       .withDelimiter(',')
       .withRecordSeparator('\n')
@@ -301,7 +311,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         deposit.depositor,
         deposit.depositId,
         deposit.state,
-        deposit.doi.getOrElse("n/a"),
+        deposit.identifier.doi.value.getOrElse("n/a"),
+        deposit.identifier.doi.registeredString.getOrElse {
+          deposit.state match {
+            case "ARCHIVED" => "yes"
+            case "FAILED" => "unknown"
+            case _ => "no"
+          }
+        },
+        deposit.identifier.fedora.getOrElse("n/a"),
         deposit.creationTimestamp,
         deposit.lastModified,
         deposit.description,
@@ -319,7 +337,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       case Deposit(_, _, _, "FAILED", _, _, _, _, _) => true
       case Deposit(_, _, _, "REJECTED", _, _, _, _, _) => true
       case Deposit(_, _, _, null, _, _, _, _, _) => true
-      // TODO add case for state == ARCHIVED && doiRegistered == false
+      // When the doi of an archived deposit is NOT registered, an error should be raised
+      case Deposit(_, Identifier(_, Doi(_, Some(false))), _, "ARCHIVED", _, _, _, _, _)  => true
       case _ => false
     })
   }
