@@ -16,12 +16,13 @@
 
 package nl.knaw.dans.easy.managedeposit
 
+import nl.knaw.dans.easy.managedeposit.State.State
 import org.apache.commons.lang.BooleanUtils
 
 case class Deposit(depositId: DepositId,
                    identifier: Identifier,
                    depositor: DepositorId,
-                   state: String,
+                   state: State,
                    description: String,
                    creationTimestamp: String,
                    numberOfContinuedDeposits: Int,
