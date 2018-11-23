@@ -17,9 +17,11 @@ package nl.knaw.dans.easy.managedeposit
 
 import better.files.File
 import better.files.File.currentWorkingDirectory
+import org.scalatest.enablers.Existence
 import org.scalatest.{ FlatSpec, Matchers, OptionValues }
 
 trait TestSupportFixture extends FlatSpec with Matchers with OptionValues {
+  implicit def existenceOfFile[FILE <: better.files.File]: Existence[FILE] = _.exists
 
   lazy val testDir: File = {
     val path = currentWorkingDirectory / s"target/test/${ getClass.getSimpleName }"

@@ -27,4 +27,5 @@ object State extends Enumeration {
   val SUBMITTED: State = Value("SUBMITTED")
   val UNKNOWN: State = Value("UNKNOWN")
 
+  def toState(stateName: String): Option[State] = State.values.find(_.toString == stateName)
 }

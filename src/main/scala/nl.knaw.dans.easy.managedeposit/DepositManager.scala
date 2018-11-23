@@ -18,11 +18,14 @@ package nl.knaw.dans.easy.managedeposit
 import java.nio.file.{ Files, Path }
 
 import nl.knaw.dans.easy.managedeposit.State.{ State, UNKNOWN }
+import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
+import org.apache.commons.io.FileUtils
 import org.joda.time.{ DateTime, DateTimeZone, Duration }
 
-import scala.util.{ Failure, Success, Try }
+import scala.language.postfixOps
+import scala.util.{ Success, Try }
 
 class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
   private val depositPropertiesFileName: String = "deposit.properties"
@@ -62,7 +65,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
   }
 
   def getCreationTime: Option[DateTime] = {
-    getProperty("creation.timestamp").map(stringTime => new DateTime(stringTime))
+    getProperty("creation.timestamp").map(timeString => new DateTime(timeString))
   }
 
   /**
@@ -72,8 +75,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
    * @return State enumeration
    */
   def getStateLabel: State = {
-    Try(getProperty(stateLabelKey).fold(UNKNOWN)(state => State.withName(state)))
-      .getOrElse(UNKNOWN)
+    getProperty(stateLabelKey).flatMap(State.toState).getOrElse(UNKNOWN)
   }
 
   def setState(stateLabel: State): Unit = {
@@ -88,17 +90,15 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     depositProperties.foreach(_.save(depositPropertiesFileName))
   }
 
-  def validateThatFileIsReadable(path: Path): Try[Unit] = {
-    if (!Files.isReadable(path)) {
-      Failure(NotReadableException(path))
-    }
-    else {
-      Success(())
-    }
+  def validateThatFileIsReadable(path: Path): Try[Unit] = Try {
+    if (!Files.isReadable(path))
+      throw NotReadableException(path)
   }
 
   def depositAgeIsLargerThanRequiredAge(age: Int): Boolean = {
-    getCreationTime.fold(false)(start => new Duration(start, end).getStandardDays > age)
+    val creationTime = getCreationTime
+    if (creationTime.isEmpty) logger.warn(s"deposit: $getDepositId does not have a creation time") // a doIfEmpty method would be nice
+    creationTime.fold(false)(start => new Duration(start, end).getStandardDays > age)
   }
 
   def validateThatDepositDirectoryIsReadable(): Try[Unit] = {
@@ -109,13 +109,53 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     validateThatFileIsReadable(depositPropertiesFilePath)
   }
 
-  def validateUserRightsForPropertiesFile(): Try[Unit] = {
-    if (depositPropertiesFileExists && !Files.isReadable(depositPropertiesFilePath)) {
-      Failure(NotReadableException(depositPropertiesFilePath))
-    }
-    else {
-      Success(())
-    }
+  def validateUserRightsForPropertiesFile(): Try[Unit] = Try {
+    if (depositPropertiesFileExists && !Files.isReadable(depositPropertiesFilePath))
+      throw NotReadableException(depositPropertiesFilePath)
+  }
+
+  def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean): Try[Unit] = {
+    for {
+      _ <- validateThatDepositDirectoryIsReadable()
+      _ <- validateThatDepositPropertiesIsReadable()
+      shouldDelete = shouldDeleteDepositDir(filterOnDepositor, age, state)
+      _ <- if (shouldDelete) deleteDepositFromDir(onlyData)
+           else Success(())
+    } yield ()
+  }
+
+  private def deleteDepositFromDir(onlyData: Boolean): Try[Unit] = {
+    val depositorId = getDepositorId
+    val depositState = getStateLabel
+    if (onlyData) deleteOnlyDataFromDeposit(depositorId, depositState)
+    else deleteDepositDirectory(depositorId, depositState)
+  }
+
+  private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {
+    logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
+    FileUtils.deleteDirectory(depositDirPath.toFile)
+  }
+
+  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State): Try[Unit] = Try {
+    depositDirPath.toFile.listFiles()
+      .filter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
+      .map(_.toPath)
+      .foreach(path => {
+        validateThatFileIsReadable(path)
+          .doIfSuccess(_ => {
+            logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
+            FileUtils.deleteQuietly(path.toFile)
+          }).unsafeGetOrThrow
+      })
+  }
+
+  private def shouldDeleteDepositDir(filterOnDepositor: Option[DepositorId], age: Int, state: State): Boolean = {
+    val depositorId: DepositorId = getDepositorId.orNull
+    val depositState = getStateLabel
+    val ageRequirementIsMet = depositAgeIsLargerThanRequiredAge(age)
+
+    // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
+    filterOnDepositor.forall(depositorId ==) && ageRequirementIsMet && depositState == state
   }
 
   private def getProperty(key: String): Option[String] = {

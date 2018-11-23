@@ -16,12 +16,10 @@
 package nl.knaw.dans.easy.managedeposit
 
 import java.nio.file.{ Files, Path, Paths }
-import java.text.SimpleDateFormat
-import java.util.Calendar
 
 import nl.knaw.dans.easy.managedeposit.State._
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.BooleanUtils
@@ -47,7 +45,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge))
   }
 
-  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Unit = {
+  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[Unit] = {
     depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor, age, state, onlyData))
   }
 
@@ -104,40 +102,14 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     Identifier(fedoraId, doi)
   }
 
-  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Unit = {
+  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Try[Unit] = Try {
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
-        val depositPropertiesFilePath = depositDirPath.resolve(depositPropertiesFileName)
-        if (!Files.isReadable(depositDirPath)) {
-          logErrorAndThrowNotReadableException(depositDirPath)
-        }
-        else if (!Files.isReadable(depositPropertiesFilePath)) {
-          logErrorAndThrowNotReadableException(depositPropertiesFilePath)
-        }
         val depositManager = new DepositManager(depositDirPath)
-
-        val depositorId = depositManager.getDepositorId.orNull
-        val depositState = depositManager.getStateLabel
-        val shouldDelete = depositManager.depositAgeIsLargerThanRequiredAge(age)
-
-        // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-        if (filterOnDepositor.forall(depositorId ==) && shouldDelete && depositState.toString == state) {
-          if (onlyData) {
-            for (file <- depositDirPath.toFile.listFiles(); if file.getName != depositPropertiesFileName) {
-              //TODO Is the following readability check required here ??
-              val filePath = file.toPath
-              if (!Files.isReadable(filePath)) {
-                logErrorAndThrowNotReadableException(filePath)
-              }
-              logger.info(s"DELETE data from deposit for $depositorId from $depositState $depositDirPath")
-              FileUtils.deleteDirectory(file)
-            }
-          }
-          else {
-            logger.info(s"DELETE deposit for $depositorId from $depositState $depositDirPath")
-            FileUtils.deleteDirectory(depositDirPath.toFile)
-          }
-        }
+        // defaulting state to unknown or null is not a sensible default here, as you might delete all deposits without a state when you make a typo.
+        val toBeDeletedState = State.toState(state)
+          .getOrElse(throw new IllegalStateException(s"Tried to delete unrecognized state: $state"))
+        depositManager.deleteDepositFromDir(filterOnDepositor, age, toBeDeletedState, onlyData).unsafeGetOrThrow
       }
   }
 
@@ -315,9 +287,10 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "STALLED states were replaced by SUBMITTED states."
   }
 
-  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[String] = Try {
-    deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData)
-    deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData)
-    "Execution of clean: success "
+  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[String] = {
+    for {
+      _ <- deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData)
+      _ <- deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData)
+    } yield "Execution of clean: success "
   }
 }
