@@ -25,6 +25,6 @@ object State extends Enumeration {
   val REJECTED: State = Value("REJECTED")
   val STALLED: State = Value("STALLED")
   val SUBMITTED: State = Value("SUBMITTED")
+  val UPLOADED: State = Value("UPLOADED")
   val UNKNOWN: State = Value("UNKNOWN")
-
 }

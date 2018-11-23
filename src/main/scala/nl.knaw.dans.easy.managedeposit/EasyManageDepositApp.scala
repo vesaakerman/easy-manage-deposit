@@ -16,12 +16,10 @@
 package nl.knaw.dans.easy.managedeposit
 
 import java.nio.file.{ Files, Path, Paths }
-import java.text.SimpleDateFormat
-import java.util.Calendar
 
 import nl.knaw.dans.easy.managedeposit.State._
-import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import nl.knaw.dans.lib.error._
+import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.BooleanUtils
