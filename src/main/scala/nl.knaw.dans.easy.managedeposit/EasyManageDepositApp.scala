@@ -46,7 +46,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[Unit] = {
-    depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor, age, state, onlyData))
+    val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
+    depositsDir.list(deleteDepositsFromDepositsDir(filterOnDepositor, age, toBeDeletedState, onlyData))
   }
 
   def retryStalledDeposit(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
@@ -102,14 +103,13 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     Identifier(fedoraId, doi)
   }
 
-  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Try[Unit] = Try {
+  def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean)(list: List[Path]): Try[Unit] = Try {
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
         val depositManager = new DepositManager(depositDirPath)
-        // defaulting state to unknown or null is not a sensible default here, as you might delete all deposits without a state when you make a typo.
-        val toBeDeletedState = State.toState(state)
-          .getOrElse(throw new IllegalStateException(s"Tried to delete unrecognized state: $state"))
-        depositManager.deleteDepositFromDir(filterOnDepositor, age, toBeDeletedState, onlyData).unsafeGetOrThrow
+        // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
+        depositManager.deleteDepositFromDir(filterOnDepositor, age, state, onlyData)
+          .doIfFailure { case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e) }
       }
   }
 
