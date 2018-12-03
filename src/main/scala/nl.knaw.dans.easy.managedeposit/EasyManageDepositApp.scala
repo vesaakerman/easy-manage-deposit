@@ -45,8 +45,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge))
   }
 
-  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Unit = {
-    depositsDir.list(deleteDepositFromDepositsDir(filterOnDepositor, age, state, onlyData))
+  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[Unit] = {
+    val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
+    depositsDir.list(deleteDepositsFromDepositsDir(filterOnDepositor, age, toBeDeletedState, onlyData))
   }
 
   def retryStalledDeposit(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
@@ -102,40 +103,13 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     Identifier(fedoraId, doi)
   }
 
-  def deleteDepositFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean)(list: List[Path]): Unit = {
+  def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean)(list: List[Path]): Try[Unit] = Try {
     list.filter(Files.isDirectory(_))
       .foreach { depositDirPath =>
-        val depositPropertiesFilePath = depositDirPath.resolve(depositPropertiesFileName)
-        if (!Files.isReadable(depositDirPath)) {
-          logErrorAndThrowNotReadableException(depositDirPath)
-        }
-        else if (!Files.isReadable(depositPropertiesFilePath)) {
-          logErrorAndThrowNotReadableException(depositPropertiesFilePath)
-        }
         val depositManager = new DepositManager(depositDirPath)
-
-        val depositorId = depositManager.getDepositorId.orNull
-        val depositState = depositManager.getStateLabel
-        val shouldDelete = depositManager.depositAgeIsLargerThanRequiredAge(age)
-
-        // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-        if (filterOnDepositor.forall(depositorId ==) && shouldDelete && depositState.toString == state) {
-          if (onlyData) {
-            for (file <- depositDirPath.toFile.listFiles(); if file.getName != depositPropertiesFileName) {
-              //TODO Is the following readability check required here ??
-              val filePath = file.toPath
-              if (!Files.isReadable(filePath)) {
-                logErrorAndThrowNotReadableException(filePath)
-              }
-              logger.info(s"DELETE data from deposit for $depositorId from $depositState $depositDirPath")
-              FileUtils.deleteDirectory(file)
-            }
-          }
-          else {
-            logger.info(s"DELETE deposit for $depositorId from $depositState $depositDirPath")
-            FileUtils.deleteDirectory(depositDirPath.toFile)
-          }
-        }
+        // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
+        depositManager.deleteDepositFromDir(filterOnDepositor, age, state, onlyData)
+          .doIfFailure { case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e) }
       }
   }
 
@@ -313,9 +287,10 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "STALLED states were replaced by SUBMITTED states."
   }
 
-  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[String] = Try {
-    deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData)
-    deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData)
-    "Execution of clean: success "
+  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[String] = {
+    for {
+      _ <- deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData)
+      _ <- deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData)
+    } yield "Execution of clean: success "
   }
 }
