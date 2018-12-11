@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
+import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 
 import better.files.File
@@ -281,8 +282,10 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "be able to delete an zipped bag if something during the ingest-flow went wrong" in {
     val depositManager = new DepositManager(ruimteReis05Path)
     ruimteReis05.list.size shouldBe 2
+    (ruimteReis05 / "bag.zip.1") should exist
     depositManager.deleteDepositFromDir(None, 1, REJECTED, onlyData = true) shouldBe a[Success[_]]
     ruimteReis05 should exist
+    (ruimteReis05 / "bag.zip.1") shouldNot exist
     ruimteReis05.list.toSeq should have size 1
   }
 
