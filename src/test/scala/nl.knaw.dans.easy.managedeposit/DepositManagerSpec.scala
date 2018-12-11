@@ -289,6 +289,18 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     ruimteReis05.list.toSeq should have size 1
   }
 
+  it should "be able to delete multiple zipped bags if something during the ingest-flow went wrong" in {
+    val depositManager = new DepositManager(depositOnePath)
+    depositOne.list.size shouldBe 3
+    (depositOne / "bag.zip.1") should exist
+    (depositOne / "bag.zip.2") should exist
+    depositManager.deleteDepositFromDir(None, 1, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
+    depositOne should exist
+    (depositOne / "bag.zip.1") shouldNot exist
+    (depositOne / "bag.zip.2") shouldNot exist
+    depositOne.list.toSeq should have size 1
+  }
+
   it should "not delete a directory if the creation date is not found" in {
     val depositManager = new DepositManager(ruimteReis02Path)
     ruimteReis02 should exist

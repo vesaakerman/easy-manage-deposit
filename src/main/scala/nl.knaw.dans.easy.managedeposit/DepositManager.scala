@@ -133,11 +133,8 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
 
   private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {
     logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
-    if (Files.isDirectory(depositDirPath)) {
-      FileUtils.deleteDirectory(depositDirPath.toFile)
-    } else {
-      Files.delete(depositDirPath)
-    }
+    if (Files.isDirectory(depositDirPath)) FileUtils.deleteDirectory(depositDirPath.toFile)
+    else Files.delete(depositDirPath)
   }
 
   private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State): Try[Unit] = Try {
