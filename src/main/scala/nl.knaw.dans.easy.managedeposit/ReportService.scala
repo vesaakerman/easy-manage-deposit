@@ -52,7 +52,7 @@ object ReportService {
     printStream.println()
     printStream.println("Per state:")
     printStream.println("----------")
-    depositsGroupedByState.foreach { case (state, deposits) => printLineForDepositGroup(state, deposits) }
+    depositsGroupedByState.foreach { case (state, toBePrintedDeposits) => printLineForDepositGroup(state, toBePrintedDeposits) }
     printStream.println()
   }
 

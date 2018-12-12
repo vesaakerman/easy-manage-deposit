@@ -26,6 +26,7 @@ object State extends Enumeration {
   val STALLED: State = Value("STALLED")
   val SUBMITTED: State = Value("SUBMITTED")
   val UNKNOWN: State = Value("UNKNOWN")
+  val UPLOADED: State = Value("UPLOADED")
 
   def toState(stateName: String): Option[State] = State.values.find(_.toString == stateName)
 }
