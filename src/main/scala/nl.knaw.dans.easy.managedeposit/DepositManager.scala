@@ -133,8 +133,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
 
   private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {
     logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
-    if (Files.isDirectory(depositDirPath)) FileUtils.deleteDirectory(depositDirPath.toFile)
-    else Files.delete(depositDirPath)
+    FileUtils.deleteDirectory(depositDirPath.toFile)
   }
 
   private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State): Try[Unit] = Try {
@@ -144,10 +143,15 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
       .foreach(path => {
         validateThatFileIsReadable(path)
           .doIfSuccess(_ => {
-            logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
-            FileUtils.deleteQuietly(path.toFile)
+            doDeleteDataFromDeposit(depositorId, depositState, path)
           }).unsafeGetOrThrow
       })
+  }
+
+  private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path) = {
+    logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
+    if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
+    else Files.delete(path)
   }
 
   private def shouldDeleteDepositDir(filterOnDepositor: Option[DepositorId], age: Int, state: State): Boolean = {
