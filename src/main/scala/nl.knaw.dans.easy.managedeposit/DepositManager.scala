@@ -142,13 +142,11 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
       .map(_.toPath)
       .foreach(path => {
         validateThatFileIsReadable(path)
-          .doIfSuccess(_ => {
-            doDeleteDataFromDeposit(depositorId, depositState, path)
-          }).unsafeGetOrThrow
+          .doIfSuccess(_ => doDeleteDataFromDeposit(depositorId, depositState, path)).unsafeGetOrThrow
       })
   }
 
-  private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path) = {
+  private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path) : Unit = {
     logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
     if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
     else Files.delete(path)
