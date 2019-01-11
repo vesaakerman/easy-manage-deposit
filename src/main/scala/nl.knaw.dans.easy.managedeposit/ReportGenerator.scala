@@ -19,9 +19,11 @@ import java.io.PrintStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 
-import nl.knaw.dans.easy.managedeposit.State.{ State, UNKNOWN }
+import nl.knaw.dans.easy.managedeposit.State.{ ARCHIVED, FAILED, INVALID, REJECTED, State, UNKNOWN }
+import org.apache.commons.csv.CSVFormat
+import resource.managed
 
-object ReportService {
+object ReportGenerator {
   private val KB = 1024L
   private val MB = 1024L * KB
   private val GB = 1024L * MB
@@ -34,6 +36,21 @@ object ReportService {
   def groupAndSortDepositsAlphabeticallyByState(deposits: Deposits): Seq[(State, Seq[Deposit])] = {
     val groupedByState = deposits.groupBy(deposit => Option(deposit.state).getOrElse(UNKNOWN))
     groupedByState.toSeq.sortBy { case (state, _) => state } //sort alphabetically by state
+  }
+
+  def outputFullReport(deposits: Deposits)(implicit printStream: PrintStream): Unit = printRecords(deposits)
+
+  def outputErrorReport(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
+    printRecords(deposits.filter {
+      case Deposit(_, _, _, _, _, INVALID, _, _, _, _, _) => true
+      case Deposit(_, _, _, _, _, FAILED, _, _, _, _, _) => true
+      case Deposit(_, _, _, _, _, REJECTED, _, _, _, _, _) => true
+      case Deposit(_, _, _, _, _, UNKNOWN, _, _, _, _, _) => true
+      case Deposit(_, _, _, _, _, null, _, _, _, _, _) => true
+      // When the doi of an archived deposit is NOT registered, an error should be raised
+      case Deposit(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _) => true
+      case _ => false
+    })
   }
 
   def outputSummary(deposits: Deposits, depositor: Option[DepositorId] = None)(implicit printStream: PrintStream): Unit = {
@@ -54,6 +71,31 @@ object ReportService {
     printStream.println("----------")
     depositsGroupedByState.foreach { case (state, toBePrintedDeposits) => printLineForDepositGroup(state, toBePrintedDeposits) }
     printStream.println()
+  }
+
+  private def printRecords(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
+    val csvFormat: CSVFormat = CSVFormat.RFC4180
+      .withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
+        "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
+      .withDelimiter(',')
+      .withRecordSeparator('\n')
+
+    for (printer <- managed(csvFormat.print(printStream));
+         deposit <- deposits.sortBy(_.creationTimestamp)) {
+      printer.printRecord(
+        deposit.depositor,
+        deposit.depositId,
+        deposit.state,
+        deposit.dansDoiIdentifier,
+        deposit.registeredString,
+        deposit.fedoraIdentifier,
+        deposit.creationTimestamp,
+        deposit.lastModified,
+        deposit.description,
+        deposit.numberOfContinuedDeposits.toString,
+        deposit.storageSpace.toString,
+      )
+    }
   }
 
   private def printLineForDepositGroup(state: State, depositGroup: Seq[Deposit])(implicit printStream: PrintStream) = {

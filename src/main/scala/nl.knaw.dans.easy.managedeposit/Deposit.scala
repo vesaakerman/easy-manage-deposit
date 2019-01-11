@@ -16,22 +16,33 @@
 
 package nl.knaw.dans.easy.managedeposit
 
-import nl.knaw.dans.easy.managedeposit.State.State
+import nl.knaw.dans.easy.managedeposit.State.{ ARCHIVED, FAILED, State }
 import org.apache.commons.lang.BooleanUtils
 
 case class Deposit(depositId: DepositId,
-                   identifier: Identifier,
+                   dansDoiIdentifier: String,
+                   dansDoiRegistered: Option[Boolean],
+                   fedoraIdentifier: String,
                    depositor: DepositorId,
                    state: State,
                    description: String,
                    creationTimestamp: String,
                    numberOfContinuedDeposits: Int,
                    storageSpace: Long,
-                   lastModified: String)
+                   lastModified: String) {
+  def registeredString: String = {
+    dansDoiRegistered.map(BooleanUtils.toStringYesNo)
+      .getOrElse(getDoiRegisteredFromState)
+  }
 
-
-case class Identifier(fedora: Option[String], doi: Doi)
-
-case class Doi(value: Option[String] = None, registered: Option[Boolean] = None) {
-  def registeredString: Option[String] = registered.map(BooleanUtils.toStringYesNo)
+  /**
+   * getDoiRegisteredFromState derives whether a deposit is registered with Datacite from the deposits state. For new deposits this
+   * can be derived from the deposit.properties value 'identifier.dans-doi.registered=yes|no'. Since old deposits don't have this property we
+   * use this function, making the reports backwards compatible.
+   **/
+  private def getDoiRegisteredFromState: String = state match {
+    case ARCHIVED => "yes"
+    case FAILED => "unknown"
+    case _ => "no"
+  }
 }

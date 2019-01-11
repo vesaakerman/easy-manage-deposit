@@ -15,22 +15,29 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
+import nl.knaw.dans.easy.managedeposit.State.{ DRAFT, FAILED }
 import org.scalatest.{ FlatSpec, Matchers, OptionValues }
 
 class DepositSpec extends FlatSpec with Matchers with OptionValues {
+  val deposit = Deposit("DepositId", "n/a", Some(true), "123", "123", State.ARCHIVED, "description", "2000-01-01", 2, 1234L, "2000-01-02")
 
   "registeredString" should "return yes when its value is true" in {
-    val doi = Doi(Option("doi_id"), Option(true))
-    doi.registeredString.value shouldBe "yes"
+    deposit.registeredString shouldBe "yes"
   }
 
   it should "return no when the boolean is false" in {
-    val doi = Doi(Option("doi_id"), Option(false))
-    doi.registeredString.value shouldBe "no"
+    deposit.copy(dansDoiRegistered = Some(false)).registeredString shouldBe "no"
   }
 
-  it should "return a None when the boolean is null" in {
-    val doi = Doi()
-    doi.registeredString shouldBe None
+  it should "return a yes when the boolean is null and state = ARCHIVED" in {
+    deposit.copy(dansDoiRegistered = None).registeredString shouldBe "yes"
+  }
+
+  it should "return a no when the boolean is null and state is not ARCHIVED" in {
+    deposit.copy(dansDoiRegistered = None, state = DRAFT).registeredString shouldBe "no"
+  }
+
+  it should "return UNKNOWN when the boolean is null and the state is FAILED" in {
+    deposit.copy(dansDoiRegistered = None, state = FAILED).registeredString shouldBe "unknown"
   }
 }

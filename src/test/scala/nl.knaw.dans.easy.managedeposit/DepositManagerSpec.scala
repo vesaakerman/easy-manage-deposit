@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 
 import better.files.File

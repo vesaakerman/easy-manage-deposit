@@ -45,7 +45,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
   }
 
   def getDoiRegistered: Option[String] = {
-    getProperty("identifier.doi.registered")
+    getProperty("identifier.dans-doi.registered")
   }
 
   def getFedoraIdentifier: Option[String] = {
@@ -146,7 +146,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
       })
   }
 
-  private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path) : Unit = {
+  private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path): Unit = {
     logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
     if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
     else Files.delete(path)

@@ -20,7 +20,6 @@ import java.nio.file.{ Files, Path, Paths }
 import nl.knaw.dans.easy.managedeposit.State._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.csv.CSVFormat
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.BooleanUtils
 import org.joda.time.{ DateTime, DateTimeZone, Duration }
@@ -39,7 +38,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   private val metadataDirName = "metadata"
   private val depositPropertiesFileName = "deposit.properties"
   private val dataSetFileName = "dataset.xml"
-  private val notAvailable = "n/a"
+  val notAvailable = "n/a"
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age]): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge))
@@ -81,7 +80,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       Some {
         Deposit(
           depositId = depositManager.getDepositId.getOrElse(notAvailable),
-          identifier = getIdentifier(depositManager),
+          dansDoiIdentifier = getDoi(depositManager.getDoiIdentifier, depositManager.depositDirPath).getOrElse(notAvailable),
+          dansDoiRegistered = depositManager.getDoiRegistered.map(BooleanUtils.toBoolean),
+          fedoraIdentifier = depositManager.getFedoraIdentifier.getOrElse(notAvailable),
           depositor = depositorId,
           state = depositManager.getStateLabel,
           description = depositManager.getStateDescription.getOrElse(notAvailable),
@@ -92,15 +93,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         )
       })
     else Success(None)
-  }
-
-  private def getIdentifier(depositManager: DepositManager): Identifier = {
-    val doi = Doi(
-      getDoi(depositManager.getDoiIdentifier, depositManager.depositDirPath),
-      depositManager.getDoiRegistered.map(BooleanUtils.toBoolean)
-    )
-    val fedoraId = depositManager.getFedoraIdentifier
-    Identifier(fedoraId, doi)
   }
 
   def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean)(list: List[Path]): Try[Unit] = Try {
@@ -210,52 +202,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     }.map(_.text)
   }
 
-  private def printRecords(deposits: Deposits): Unit = {
-    val csvFormat: CSVFormat = CSVFormat.RFC4180
-      .withHeader("DEPOSITOR", "DEPOSIT_ID", "DEPOSIT_STATE", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
-        "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
-      .withDelimiter(',')
-      .withRecordSeparator('\n')
-
-    for (printer <- managed(csvFormat.print(Console.out));
-         deposit <- deposits.sortBy(_.creationTimestamp)) {
-      printer.printRecord(
-        deposit.depositor,
-        deposit.depositId,
-        deposit.state,
-        deposit.identifier.doi.value.getOrElse(notAvailable),
-        deposit.identifier.doi.registeredString.getOrElse {
-          deposit.state match {
-            case ARCHIVED => "yes"
-            case FAILED => "unknown"
-            case _ => "no"
-          }
-        },
-        deposit.identifier.fedora.getOrElse(notAvailable),
-        deposit.creationTimestamp,
-        deposit.lastModified,
-        deposit.description,
-        deposit.numberOfContinuedDeposits.toString,
-        deposit.storageSpace.toString,
-      )
-    }
-  }
-
-  private def outputFullReport(deposits: Deposits): Unit = printRecords(deposits)
-
-  private def outputErrorReport(deposits: Deposits): Unit = {
-    printRecords(deposits.filter {
-      case Deposit(_, _, _, INVALID, _, _, _, _, _) => true
-      case Deposit(_, _, _, FAILED, _, _, _, _, _) => true
-      case Deposit(_, _, _, REJECTED, _, _, _, _, _) => true
-      case Deposit(_, _, _, UNKNOWN, _, _, _, _, _) => true
-      case Deposit(_, _, _, null, _, _, _, _, _) => true
-      // When the doi of an archived deposit is NOT registered, an error should be raised
-      case Deposit(_, Identifier(_, Doi(_, Some(false))), _, ARCHIVED, _, _, _, _, _) => true
-      case _ => false
-    })
-  }
-
   private def logErrorAndThrowNotReadableException(filePath: Path) = {
     logger.error(s"cannot read $filePath")
     throw NotReadableException(filePath)
@@ -264,21 +210,21 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   def summary(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
     val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
     val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
-    ReportService.outputSummary(sword2Deposits ++ ingestFlowDeposits, depositor)(Console.out)
+    ReportGenerator.outputSummary(sword2Deposits ++ ingestFlowDeposits, depositor)(Console.out)
     "End of summary report."
   }
 
   def createFullReport(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
     val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
     val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
-    outputFullReport(sword2Deposits ++ ingestFlowDeposits)
+    ReportGenerator.outputFullReport(sword2Deposits ++ ingestFlowDeposits)(Console.out)
     "End of full report."
   }
 
   def createErrorReport(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
     val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
     val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
-    outputErrorReport(sword2Deposits ++ ingestFlowDeposits)
+    ReportGenerator.outputErrorReport(sword2Deposits ++ ingestFlowDeposits)(Console.out)
     "End of error report."
   }
 
