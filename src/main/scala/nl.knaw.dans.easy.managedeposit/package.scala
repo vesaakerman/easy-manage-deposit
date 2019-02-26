@@ -33,6 +33,8 @@ package object managedeposit {
   val XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance"
   val XML_NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
   val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
+  val DANS_DOI_PREFIX = "10.17026/dans-"
+  val DANS_DOI_TEST_PREFIX = "10.5072/dans-"
 
   case class NotReadableException(path: Path, cause: Throwable = null)
     extends Exception(s"""cannot read $path""", cause)

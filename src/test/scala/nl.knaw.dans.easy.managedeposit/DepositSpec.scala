@@ -15,29 +15,65 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import nl.knaw.dans.easy.managedeposit.State.{ DRAFT, FAILED }
-import org.scalatest.{ FlatSpec, Matchers, OptionValues }
+import java.nio.file.Paths
 
-class DepositSpec extends FlatSpec with Matchers with OptionValues {
-  val deposit = Deposit("DepositId", "n/a", Some(true), "123", "123", State.ARCHIVED, "description", "2000-01-01", 2, 1234L, "2000-01-02")
+import better.files.File
+import org.apache.commons.configuration.PropertiesConfiguration
+import org.scalatest.BeforeAndAfterEach
 
-  "registeredString" should "return yes when its value is true" in {
-    deposit.registeredString shouldBe "yes"
+class DepositSpec extends TestSupportFixture with BeforeAndAfterEach {
+
+  lazy private val depositDir = {
+    val path = testDir / "inputForEasyManageDeposit/"
+    if (path.exists) path.delete()
+    path.createDirectories()
+    path
   }
 
-  it should "return no when the boolean is false" in {
-    deposit.copy(dansDoiRegistered = Some(false)).registeredString shouldBe "no"
+  private val dansDoiRegistered = (depositDir / "dans-doi-registered").path
+  private val dansDoiNotRegistered = (depositDir / "dans-doi-not-registered").path
+  private val dansDoiNoRegistration = (depositDir / "dans-doi-no-registration").path
+  private val dansDoiNoRegistrationDepositFailed = (depositDir / "dans-doi-no-registration-deposit-failed").path
+  private val dansDoiNoRegistrationDepositRejected = (depositDir / "dans-doi-no-registration-deposit-rejected").path
+  private val otherDoi = (depositDir / "other-doi").path
+
+  private val resourceDirString: String = Paths.get(getClass.getResource("/").toURI).toAbsolutePath.toString
+  private val configuration = new Configuration("version x.y.z", new PropertiesConfiguration(resourceDirString + "/debug-config/application.properties"))
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    depositDir.clear()
+    File(getClass.getResource("/inputForEasyManageDeposit/").toURI).copyTo(depositDir)
   }
 
-  it should "return a yes when the boolean is null and state = ARCHIVED" in {
-    deposit.copy(dansDoiRegistered = None).registeredString shouldBe "yes"
+
+  "doiRegistered" should "return a yes when DANS DOI and DOI is registered" in {
+    val depositManager = new DepositManager(dansDoiRegistered)
+    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "yes"
   }
 
-  it should "return a no when the boolean is null and state is not ARCHIVED" in {
-    deposit.copy(dansDoiRegistered = None, state = DRAFT).registeredString shouldBe "no"
+  it should "return a no when DANS DOI and DOI is not registered" in {
+    val depositManager = new DepositManager(dansDoiNotRegistered)
+    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "no"
   }
 
-  it should "return UNKNOWN when the boolean is null and the state is FAILED" in {
-    deposit.copy(dansDoiRegistered = None, state = FAILED).registeredString shouldBe "unknown"
+  it should "return a yes when DANS DOI and DOI registration is not given and STATE is ARCHIVED" in {
+    val depositManager = new DepositManager(dansDoiNoRegistration)
+    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "yes"
+  }
+
+  it should "return a no when DANS DOI and DOI registration is not given and STATE is not ARCHIVED and not FAILED" in {
+    val depositManager = new DepositManager(dansDoiNoRegistrationDepositRejected)
+    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "no"
+  }
+
+  it should "return 'unknown' when DANS DOI and DOI registration is not given and STATE is FAILED" in {
+    val depositManager = new DepositManager(dansDoiNoRegistrationDepositFailed)
+    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "unknown"
+  }
+
+  it should "return a yes when NOT DANS DOI and DOI is not empty" in {
+    val depositManager = new DepositManager(otherDoi)
+    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "yes"
   }
 }

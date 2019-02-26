@@ -122,7 +122,7 @@ class ReportGeneratorSpec extends TestSupportFixture
 
   "outputErrorReport" should "only print the deposits containing an error" in {
     val baos = new ByteArrayOutputStream()
-    val errorDeposit = createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)) //violates the rule ARCHIVED must be registered
+    val errorDeposit = createDeposit("dans-0", ARCHIVED).copy(doiRegistered = "no") //violates the rule ARCHIVED must be registered
     val ps: PrintStream = new PrintStream(baos, true)
     val deposits = List(
       errorDeposit,
@@ -138,7 +138,7 @@ class ReportGeneratorSpec extends TestSupportFixture
     val baos = new ByteArrayOutputStream()
     val ps: PrintStream = new PrintStream(baos, true)
     val deposits = List(
-      createDeposit("dans-0", DRAFT).copy(dansDoiRegistered = Some(false)),
+      createDeposit("dans-0", DRAFT).copy(doiRegistered = "no"),
       createDeposit("dans-1", SUBMITTED),
       createDeposit("dans-1", SUBMITTED),
     )
@@ -152,7 +152,7 @@ class ReportGeneratorSpec extends TestSupportFixture
     val baos = new ByteArrayOutputStream()
     val ps: PrintStream = new PrintStream(baos, true)
     val deposits = List(
-      createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)), //violates the rule ARCHIVED must be registered
+      createDeposit("dans-0", ARCHIVED).copy(doiRegistered = "no"), //violates the rule ARCHIVED must be registered
       createDeposit("dans-1", FAILED),
       createDeposit("dans-2", REJECTED),
       createDeposit("dans-3", INVALID),
@@ -179,8 +179,8 @@ class ReportGeneratorSpec extends TestSupportFixture
     s"${ deposit.depositor }," +
       s"${ deposit.depositId }," +
       s"${ Option(deposit.state).getOrElse("") }," +
-      s"${ deposit.dansDoiIdentifier }," +
-      s"${ deposit.registeredString }," +
+      s"${ deposit.doiIdentifier }," +
+      s"${ deposit.doiRegistered }," +
       s"${ deposit.fedoraIdentifier.toString }," +
       s"${ deposit.creationTimestamp }," +
       s"${ deposit.lastModified }," +
@@ -190,7 +190,7 @@ class ReportGeneratorSpec extends TestSupportFixture
   }
 
   private def createDeposit(depositorId: String, state: State) = {
-    Deposit(UUID.randomUUID().toString, UUID.randomUUID().toString, Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "")
+    Deposit(UUID.randomUUID().toString, UUID.randomUUID().toString, "yes", "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "")
   }
 
   private def createDeposits = List(

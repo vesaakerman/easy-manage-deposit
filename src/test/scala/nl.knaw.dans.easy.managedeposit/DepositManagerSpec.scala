@@ -62,7 +62,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     depositManager.getStateLabel shouldBe SUBMITTED
     depositManager.getStateDescription.value shouldBe "Deposit is valid and ready for post-submission processing"
     depositManager.getFedoraIdentifier.value shouldBe "fedora12345"
-    depositManager.getDoiRegistered.value shouldBe "yes"
+    depositManager.getDansDoiRegistered.value shouldBe "yes"
     depositManager.getDoiIdentifier.value shouldBe "aba410b6-9090-40b2-8080-6122aad00285"
   }
 
@@ -73,7 +73,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     depositManager.getDepositorId shouldBe empty
     depositManager.getCreationTime shouldBe empty
     depositManager.getDoiIdentifier shouldBe empty
-    depositManager.getDoiRegistered shouldBe empty
+    depositManager.getDansDoiRegistered shouldBe empty
     depositManager.getDepositId.value shouldBe depositDirWithoutPropertiesPath.getFileName.toString
   }
 

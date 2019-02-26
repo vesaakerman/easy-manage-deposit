@@ -44,7 +44,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     getProperty("identifier.doi")
   }
 
-  def getDoiRegistered: Option[String] = {
+  def getDansDoiRegistered: Option[String] = {
     getProperty("identifier.dans-doi.registered")
   }
 
