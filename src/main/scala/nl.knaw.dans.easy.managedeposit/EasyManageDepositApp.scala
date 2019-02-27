@@ -71,7 +71,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       }
   }
 
-  def getDeposit(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], depositManager: DepositManager): Try[Option[Deposit]] = {
+  private def getDeposit(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], depositManager: DepositManager): Try[Option[Deposit]] = {
     val depositorId = depositManager.getDepositorId.getOrElse(notAvailable)
     lazy val lastModified: Option[DateTime] = getLastModifiedTimestamp(depositManager.depositDirPath)
     // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
