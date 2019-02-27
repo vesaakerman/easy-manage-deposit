@@ -29,10 +29,11 @@ case class Deposit(depositId: DepositId,
                    creationTimestamp: String,
                    numberOfContinuedDeposits: Int,
                    storageSpace: Long,
-                   lastModified: String) {
+                   lastModified: String)
+                  (implicit dansDoiPrefixes: List[String]) {
 
   def isDansDoi: Boolean = {
-    doiIdentifier.startsWith(DANS_DOI_PREFIX) || doiIdentifier.startsWith(DANS_DOI_TEST_PREFIX)
+    dansDoiPrefixes.exists(doiIdentifier.startsWith)
   }
 
   def registeredString: String = {

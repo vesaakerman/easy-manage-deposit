@@ -31,6 +31,8 @@ class ReportGeneratorSpec extends TestSupportFixture
   with MockFactory
   with Inspectors {
 
+  private implicit val dansDoiPrefixes: List[String] = List("10.17026/", "10.5072/")
+
   "filterDepositsByDepositor" should "only return deposits where the id of the depositor matches" in {
     val deposits = List(
       createDeposit("dans-1", DRAFT),
@@ -122,16 +124,19 @@ class ReportGeneratorSpec extends TestSupportFixture
 
   "outputErrorReport" should "only print the deposits containing an error" in {
     val baos = new ByteArrayOutputStream()
-    val errorDeposit = createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)) //violates the rule ARCHIVED must be registered
+    val errorDeposit = createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)) //violates the rule ARCHIVED must be registered when DANS doi
+    val noDansDoiDeposit = createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)).copy(doiIdentifier = "11.11111/other-doi-123")
     val ps: PrintStream = new PrintStream(baos, true)
     val deposits = List(
       errorDeposit,
+      noDansDoiDeposit,                               //does not violate any rule
       createDeposit("dans-1", SUBMITTED), //does not violate any rule
       createDeposit("dans-2", SUBMITTED), //does not violate any rule
     )
     outputErrorReportManaged(ps, deposits)
     val errorReport = baos.toString
-    errorReport should include(createCsvRow(errorDeposit)) // only the first deposit should be added to the report
+    errorReport should include(createCsvRow(errorDeposit))          // only the first deposit should be added to the report
+    errorReport should not include(createCsvRow(noDansDoiDeposit))
   }
 
   it should "not print any csv rows if no deposits violate the rules" in {

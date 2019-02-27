@@ -38,6 +38,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   private val metadataDirName = "metadata"
   private val depositPropertiesFileName = "deposit.properties"
   private val dataSetFileName = "dataset.xml"
+  private implicit val dansDoiPrefixes: List[String] = configuration.properties.getList("dans-doi.prefixes")
+    .asScala.toList
+    .map(prefix => prefix.asInstanceOf[String])
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age]): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge))

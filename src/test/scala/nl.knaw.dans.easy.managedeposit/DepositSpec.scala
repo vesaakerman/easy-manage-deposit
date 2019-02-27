@@ -19,6 +19,9 @@ import nl.knaw.dans.easy.managedeposit.State.{ DRAFT, FAILED }
 import org.scalatest.{ FlatSpec, Matchers, OptionValues }
 
 class DepositSpec extends FlatSpec with Matchers with OptionValues {
+
+  private implicit val dansDoiPrefixes: List[String] = List("10.17026/", "10.5072/")
+
   val deposit = Deposit("DepositId", "10.17026/dans-12345", Some(true), "123", "123", State.ARCHIVED, "description", "2000-01-01", 2, 1234L, "2000-01-02")
 
   "registeredString" should "return a yes when DANS DOI and DOI is registered" in {
