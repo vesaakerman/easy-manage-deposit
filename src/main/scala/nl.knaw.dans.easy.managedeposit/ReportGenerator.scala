@@ -48,8 +48,7 @@ object ReportGenerator {
       case Deposit(_, _, _, _, _, UNKNOWN, _, _, _, _, _) => true
       case Deposit(_, _, _, _, _, null, _, _, _, _, _) => true
       // When the doi of an archived deposit is NOT registered, an error should be raised
-      case Deposit(_, _, "no", _, _, ARCHIVED, _, _, _, _, _) => true
-      case Deposit(_, _, "unknown", _, _, ARCHIVED, _, _, _, _, _) => true
+      case d@Deposit(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _) if d.isDansDoi => true
       case _ => false
     })
   }
@@ -88,7 +87,7 @@ object ReportGenerator {
         deposit.depositId,
         deposit.state,
         deposit.doiIdentifier,
-        deposit.doiRegistered,
+        deposit.registeredString,
         deposit.fedoraIdentifier,
         deposit.creationTimestamp,
         deposit.lastModified,

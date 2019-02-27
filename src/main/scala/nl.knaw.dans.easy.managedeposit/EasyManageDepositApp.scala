@@ -38,7 +38,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   private val metadataDirName = "metadata"
   private val depositPropertiesFileName = "deposit.properties"
   private val dataSetFileName = "dataset.xml"
-  val notAvailable = "n/a"
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age]): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge))
@@ -71,8 +70,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
 
   def getDeposit(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], depositManager: DepositManager): Try[Option[Deposit]] = {
     val depositorId = depositManager.getDepositorId.getOrElse(notAvailable)
-    val doiIdentifier = getDoi(depositManager.getDoiIdentifier, depositManager.depositDirPath).getOrElse(notAvailable)
-    val state = depositManager.getStateLabel
     lazy val lastModified: Option[DateTime] = getLastModifiedTimestamp(depositManager.depositDirPath)
     // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
     val hasDepositor = filterOnDepositor.forall(depositorId ==)
@@ -82,8 +79,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       Some {
         Deposit(
           depositId = depositManager.getDepositId.getOrElse(notAvailable),
-          doiIdentifier = doiIdentifier,
-          doiRegistered = getDoiRegistered(doiIdentifier, depositManager.getDansDoiRegistered, state),
+          doiIdentifier = getDoi(depositManager.getDoiIdentifier, depositManager.depositDirPath).getOrElse(notAvailable),
+          dansDoiRegistered = depositManager.getDansDoiRegistered.map(BooleanUtils.toBoolean),
           fedoraIdentifier = depositManager.getFedoraIdentifier.getOrElse(notAvailable),
           depositor = depositorId,
           state = depositManager.getStateLabel,
@@ -95,25 +92,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         )
       })
     else Success(None)
-  }
-
-  private def getDoiRegistered(doiIdentifier: String, dansDoiRegistered: Option[String], state: State): String = {
-    if (!doiIdentifier.startsWith(DANS_DOI_PREFIX) && !doiIdentifier.startsWith(DANS_DOI_TEST_PREFIX) && doiIdentifier.nonEmpty && !doiIdentifier.equals(notAvailable))
-      "yes"
-    else
-      dansDoiRegistered.map(BooleanUtils.toBoolean).map(BooleanUtils.toStringYesNo)
-      .getOrElse(getDoiRegisteredFromState(state))
-  }
-
-  /**
-   * getDoiRegisteredFromState derives whether a deposit is registered with Datacite from the deposits state. For new deposits this
-   * can be derived from the deposit.properties value 'identifier.dans-doi.registered=yes|no'. Since old deposits don't have this property we
-   * use this function, making the reports backwards compatible.
-   **/
-  private def getDoiRegisteredFromState(state: State): String = state match {
-    case ARCHIVED => "yes"
-    case FAILED => "unknown"
-    case _ => "no"
   }
 
   def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean)(list: List[Path]): Try[Unit] = Try {

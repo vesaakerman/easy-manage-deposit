@@ -35,6 +35,7 @@ package object managedeposit {
   val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
   val DANS_DOI_PREFIX = "10.17026/dans-"
   val DANS_DOI_TEST_PREFIX = "10.5072/dans-"
+  val notAvailable = "n/a"
 
   case class NotReadableException(path: Path, cause: Throwable = null)
     extends Exception(s"""cannot read $path""", cause)
