@@ -15,65 +15,33 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-import java.nio.file.Paths
+import nl.knaw.dans.easy.managedeposit.State.{ DRAFT, FAILED }
+import org.scalatest.{ FlatSpec, Matchers, OptionValues }
 
-import better.files.File
-import org.apache.commons.configuration.PropertiesConfiguration
-import org.scalatest.BeforeAndAfterEach
+class DepositSpec extends FlatSpec with Matchers with OptionValues {
+  val deposit = Deposit("DepositId", "10.17026/dans-12345", Some(true), "123", "123", State.ARCHIVED, "description", "2000-01-01", 2, 1234L, "2000-01-02")
 
-class DepositSpec extends TestSupportFixture with BeforeAndAfterEach {
-
-  lazy private val depositDir = {
-    val path = testDir / "inputForEasyManageDeposit/"
-    if (path.exists) path.delete()
-    path.createDirectories()
-    path
+  "registeredString" should "return a yes when DANS DOI and DOI is registered" in {
+    deposit.registeredString shouldBe "yes"
   }
 
-  private val dansDoiRegistered = (depositDir / "dans-doi-registered").path
-  private val dansDoiNotRegistered = (depositDir / "dans-doi-not-registered").path
-  private val dansDoiNoRegistration = (depositDir / "dans-doi-no-registration").path
-  private val dansDoiNoRegistrationDepositFailed = (depositDir / "dans-doi-no-registration-deposit-failed").path
-  private val dansDoiNoRegistrationDepositRejected = (depositDir / "dans-doi-no-registration-deposit-rejected").path
-  private val otherDoi = (depositDir / "other-doi").path
-
-  private val resourceDirString: String = Paths.get(getClass.getResource("/").toURI).toAbsolutePath.toString
-  private val configuration = new Configuration("version x.y.z", new PropertiesConfiguration(resourceDirString + "/debug-config/application.properties"))
-
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    depositDir.clear()
-    File(getClass.getResource("/inputForEasyManageDeposit/").toURI).copyTo(depositDir)
+  it should "return a no when DANS DOI and DOI is not registered" in {
+    deposit.copy(dansDoiRegistered = Some(false)).registeredString shouldBe "no"
   }
 
+  it should "return a yes when DANS DOI and DOI registration is not given and state is ARCHIVED" in {
+    deposit.copy(dansDoiRegistered = None).registeredString shouldBe "yes"
+  }
 
-//  "doiRegistered" should "return a yes when DANS DOI and DOI is registered" in {
-//    val depositManager = new DepositManager(dansDoiRegistered)
-//    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "yes"
-//  }
-//
-//  it should "return a no when DANS DOI and DOI is not registered" in {
-//    val depositManager = new DepositManager(dansDoiNotRegistered)
-//    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "no"
-//  }
-//
-//  it should "return a yes when DANS DOI and DOI registration is not given and STATE is ARCHIVED" in {
-//    val depositManager = new DepositManager(dansDoiNoRegistration)
-//    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "yes"
-//  }
-//
-//  it should "return a no when DANS DOI and DOI registration is not given and STATE is not ARCHIVED and not FAILED" in {
-//    val depositManager = new DepositManager(dansDoiNoRegistrationDepositRejected)
-//    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "no"
-//  }
-//
-//  it should "return 'unknown' when DANS DOI and DOI registration is not given and STATE is FAILED" in {
-//    val depositManager = new DepositManager(dansDoiNoRegistrationDepositFailed)
-//    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "unknown"
-//  }
-//
-//  it should "return a yes when NOT DANS DOI and DOI is not empty" in {
-//    val depositManager = new DepositManager(otherDoi)
-//    new EasyManageDepositApp(configuration).getDeposit(None, None, depositManager).get.get.doiRegistered shouldBe "yes"
-//  }
+  it should "return a no when DANS DOI and DOI registration is not given and state is not ARCHIVED and not FAILED" in {
+    deposit.copy(dansDoiRegistered = None, state = DRAFT).registeredString shouldBe "no"
+  }
+
+  it should "return UNKNOWN when DANS DOI and DOI registration is not given and state is FAILED" in {
+    deposit.copy(dansDoiRegistered = None, state = FAILED).registeredString shouldBe "unknown"
+  }
+
+  it should "return a yes when NOT DANS DOI, also when dansDoiRegistered is false" in {
+    deposit.copy(dansDoiRegistered = Some(false)).copy(doiIdentifier = "11.11111/other-123").registeredString shouldBe "yes"
+  }
 }
