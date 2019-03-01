@@ -45,6 +45,6 @@ class DepositSpec extends FlatSpec with Matchers with OptionValues {
   }
 
   it should "return a yes when NOT DANS DOI, also when dansDoiRegistered is false" in {
-    deposit.copy(dansDoiRegistered = Some(false)).copy(doiIdentifier = "11.11111/other-123").registeredString shouldBe "yes"
+    deposit.copy(dansDoiRegistered = Some(false), doiIdentifier = "11.11111/other-123").registeredString shouldBe "yes"
   }
 }

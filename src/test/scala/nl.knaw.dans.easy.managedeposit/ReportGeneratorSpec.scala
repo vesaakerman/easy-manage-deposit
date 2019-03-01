@@ -125,18 +125,18 @@ class ReportGeneratorSpec extends TestSupportFixture
   "outputErrorReport" should "only print the deposits containing an error" in {
     val baos = new ByteArrayOutputStream()
     val errorDeposit = createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)) //violates the rule ARCHIVED must be registered when DANS doi
-    val noDansDoiDeposit = createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)).copy(doiIdentifier = "11.11111/other-doi-123")
+    val noDansDoiDeposit = createDeposit("dans-1", ARCHIVED).copy(dansDoiRegistered = Some(false), doiIdentifier = "11.11111/other-doi-123")
     val ps: PrintStream = new PrintStream(baos, true)
     val deposits = List(
       errorDeposit,
-      noDansDoiDeposit,                               //does not violate any rule
-      createDeposit("dans-1", SUBMITTED), //does not violate any rule
+      noDansDoiDeposit, //does not violate any rule
       createDeposit("dans-2", SUBMITTED), //does not violate any rule
+      createDeposit("dans-3", SUBMITTED), //does not violate any rule
     )
     outputErrorReportManaged(ps, deposits)
     val errorReport = baos.toString
-    errorReport should include(createCsvRow(errorDeposit))          // only the first deposit should be added to the report
-    errorReport should not include(createCsvRow(noDansDoiDeposit))
+    errorReport should include(createCsvRow(errorDeposit)) // only the first deposit should be added to the report
+    errorReport should not include createCsvRow(noDansDoiDeposit)
   }
 
   it should "not print any csv rows if no deposits violate the rules" in {
