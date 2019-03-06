@@ -19,25 +19,32 @@ import nl.knaw.dans.easy.managedeposit.State.{ DRAFT, FAILED }
 import org.scalatest.{ FlatSpec, Matchers, OptionValues }
 
 class DepositSpec extends FlatSpec with Matchers with OptionValues {
-  val deposit = Deposit("DepositId", "n/a", Some(true), "123", "123", State.ARCHIVED, "description", "2000-01-01", 2, 1234L, "2000-01-02")
 
-  "registeredString" should "return yes when its value is true" in {
+  private implicit val dansDoiPrefixes: List[String] = List("10.17026/", "10.5072/")
+
+  val deposit = Deposit("DepositId", "10.17026/dans-12345", Some(true), "123", "123", State.ARCHIVED, "description", "2000-01-01", 2, 1234L, "2000-01-02")
+
+  "registeredString" should "return a yes when DANS DOI and DOI is registered" in {
     deposit.registeredString shouldBe "yes"
   }
 
-  it should "return no when the boolean is false" in {
+  it should "return a no when DANS DOI and DOI is not registered" in {
     deposit.copy(dansDoiRegistered = Some(false)).registeredString shouldBe "no"
   }
 
-  it should "return a yes when the boolean is null and state = ARCHIVED" in {
+  it should "return a yes when DANS DOI and DOI registration is not given and state is ARCHIVED" in {
     deposit.copy(dansDoiRegistered = None).registeredString shouldBe "yes"
   }
 
-  it should "return a no when the boolean is null and state is not ARCHIVED" in {
+  it should "return a no when DANS DOI and DOI registration is not given and state is not ARCHIVED and not FAILED" in {
     deposit.copy(dansDoiRegistered = None, state = DRAFT).registeredString shouldBe "no"
   }
 
-  it should "return UNKNOWN when the boolean is null and the state is FAILED" in {
+  it should "return UNKNOWN when DANS DOI and DOI registration is not given and state is FAILED" in {
     deposit.copy(dansDoiRegistered = None, state = FAILED).registeredString shouldBe "unknown"
+  }
+
+  it should "return a yes when NOT DANS DOI, also when dansDoiRegistered is false" in {
+    deposit.copy(dansDoiRegistered = Some(false), doiIdentifier = "11.11111/other-123").registeredString shouldBe "yes"
   }
 }

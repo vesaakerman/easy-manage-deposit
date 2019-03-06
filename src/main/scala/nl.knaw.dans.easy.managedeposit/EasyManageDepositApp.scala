@@ -38,7 +38,9 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   private val metadataDirName = "metadata"
   private val depositPropertiesFileName = "deposit.properties"
   private val dataSetFileName = "dataset.xml"
-  val notAvailable = "n/a"
+  private implicit val dansDoiPrefixes: List[String] = configuration.properties.getList("dans-doi.prefixes")
+    .asScala.toList
+    .map(prefix => prefix.asInstanceOf[String])
 
   private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age]): Deposits = {
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge))
@@ -80,8 +82,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
       Some {
         Deposit(
           depositId = depositManager.getDepositId.getOrElse(notAvailable),
-          dansDoiIdentifier = getDoi(depositManager.getDoiIdentifier, depositManager.depositDirPath).getOrElse(notAvailable),
-          dansDoiRegistered = depositManager.getDoiRegistered.map(BooleanUtils.toBoolean),
+          doiIdentifier = getDoi(depositManager.getDoiIdentifier, depositManager.depositDirPath).getOrElse(notAvailable),
+          dansDoiRegistered = depositManager.getDansDoiRegistered.map(BooleanUtils.toBoolean),
           fedoraIdentifier = depositManager.getFedoraIdentifier.getOrElse(notAvailable),
           depositor = depositorId,
           state = depositManager.getStateLabel,

@@ -20,7 +20,7 @@ import nl.knaw.dans.easy.managedeposit.State.{ ARCHIVED, FAILED, State }
 import org.apache.commons.lang.BooleanUtils
 
 case class Deposit(depositId: DepositId,
-                   dansDoiIdentifier: String,
+                   doiIdentifier: String,
                    dansDoiRegistered: Option[Boolean],
                    fedoraIdentifier: String,
                    depositor: DepositorId,
@@ -29,10 +29,19 @@ case class Deposit(depositId: DepositId,
                    creationTimestamp: String,
                    numberOfContinuedDeposits: Int,
                    storageSpace: Long,
-                   lastModified: String) {
+                   lastModified: String)
+                  (implicit dansDoiPrefixes: List[String]) {
+
+  def isDansDoi: Boolean = {
+    dansDoiPrefixes.exists(doiIdentifier.startsWith)
+  }
+
   def registeredString: String = {
-    dansDoiRegistered.map(BooleanUtils.toStringYesNo)
-      .getOrElse(getDoiRegisteredFromState)
+    if (!isDansDoi && doiIdentifier.nonEmpty && !doiIdentifier.equals(notAvailable))
+      "yes"
+    else
+      dansDoiRegistered.map(BooleanUtils.toStringYesNo)
+        .getOrElse(getDoiRegisteredFromState)
   }
 
   /**
