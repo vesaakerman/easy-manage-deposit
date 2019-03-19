@@ -2,10 +2,26 @@
 #
 # Helper script to create error reports and send them to a list of recipients.
 #
-# Usage: ./create-and-send-error-report.sh <host-name> <depositor-account> [<from-email>] <to-email> [<bcc-email>]
-#
 # Use - (dash) as depositor-account to generate a report for all the deposits.
 #
+
+usage() {
+    echo "Usage: create-and-send-error-report [-s, --send-always <true|false>] <host-name> <depositor-account> [<from-email>] <to-email> [<bcc-email>]"
+    echo "       create-and-send-error-report --help"
+}
+
+SEND_ALWAYS=false
+
+while true; do
+    case "$1" in
+        -h | --help) usage; exit 0 ;;
+        -s | --send-always)
+            SEND_ALWAYS=true
+            shift 1
+        ;;
+        *) break;;
+    esac
+done
 
 EASY_HOST=$1
 EASY_ACCOUNT=$2
@@ -14,7 +30,7 @@ TO=$4
 BCC=$5
 TMPDIR=/tmp
 
-if [ "$EASY_ACCOUNT" == "-" ]; then
+if [[ "$EASY_ACCOUNT" == "-" ]]; then
     EASY_ACCOUNT=""
 fi
 
@@ -22,14 +38,13 @@ DATE=$(date +%Y-%m-%d)
 REPORT_ERROR=${TMPDIR}/report-error-${EASY_ACCOUNT:-all}-$DATE.csv
 REPORT_ERROR_24=${TMPDIR}/report-error-${EASY_ACCOUNT:-all}-yesterday-$DATE.csv
 
-
-if [ "$FROM" == "" ]; then
+if [[ "$FROM" == "" ]]; then
     FROM_EMAIl=""
 else
     FROM_EMAIL="-r $FROM"
 fi
 
-if [ "$BCC" == "" ]; then
+if [[ "$BCC" == "" ]]; then
     BCC_EMAILS=""
 else
     BCC_EMAILS="-b $BCC"
@@ -39,7 +54,7 @@ TO_EMAILS="$TO"
 
 exit_if_failed() {
     local EXITSTATUS=$?
-    if [ $EXITSTATUS != 0 ]; then
+    if [[ $EXITSTATUS != 0 ]]; then
         echo "ERROR: $1, exit status = $EXITSTATUS"
         echo "Error report generation FAILED. Contact the system administrator." |
         mail -s "FAILED: Error report: status of failed EASY deposits (${EASY_ACCOUNT:-all depositors})" \
@@ -61,7 +76,7 @@ echo "Counting the number of lines in $REPORT_ERROR_24; if there is only a heade
 LINE_COUNT=$(wc -l < "$REPORT_ERROR_24")
 echo "Line count in $REPORT_ERROR_24: $LINE_COUNT line(s)."
 
-if [ $LINE_COUNT -gt 1 ]; then
+if [[ $LINE_COUNT -gt 1 || "$SEND_ALWAYS" = true ]]; then
     echo "New failed deposits detected, therefore sending the report"
 
     echo "Status of $EASY_HOST deposits d.d. $(date) for depositor: ${EASY_ACCOUNT:-all}" | \
