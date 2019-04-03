@@ -88,3 +88,8 @@ if [[ $LINE_COUNT -gt 1 || "$SEND_ALWAYS" = true ]]; then
 else
     echo "No new failed deposits were found, therefore no report was sent."
 fi
+
+echo -n "Remove generated report files"
+rm -f $REPORT_ERROR && \
+rm -f $REPORT_ERROR_24
+exit_if_failed "removing generated report file failed"

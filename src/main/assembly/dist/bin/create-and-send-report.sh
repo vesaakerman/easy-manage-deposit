@@ -100,3 +100,10 @@ if [[ $LINE_COUNT -gt 1 || "$SEND_ALWAYS" = true ]]; then
 else
     echo "No new deposits were done, therefore no report was sent."
 fi
+
+echo -n "Remove generated report files..."
+rm -f $REPORT_SUMMARY && \
+rm -f $REPORT_SUMMARY_24 && \
+rm -f $REPORT_FULL && \
+rm -f $REPORT_FULL_24
+exit_if_failed "removing generated report file failed"
