@@ -29,7 +29,9 @@ case class Deposit(depositId: DepositId,
                    creationTimestamp: String,
                    numberOfContinuedDeposits: Int,
                    storageSpace: Long,
-                   lastModified: String)
+                   lastModified: String,
+                   source: String,
+                  )
                   (implicit dansDoiPrefixes: List[String]) {
 
   def isDansDoi: Boolean = {
