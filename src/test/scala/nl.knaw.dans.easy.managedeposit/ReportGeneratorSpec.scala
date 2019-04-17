@@ -35,45 +35,45 @@ class ReportGeneratorSpec extends TestSupportFixture
 
   "filterDepositsByDepositor" should "only return deposits where the id of the depositor matches" in {
     val deposits = List(
-      createDeposit("dans-1", DRAFT),
-      createDeposit("dans-1", SUBMITTED),
-      createDeposit("dans-3", SUBMITTED),
+      createDeposit("dans-1", DRAFT, "SRC2"),
+      createDeposit("dans-1", SUBMITTED, "SRC1"),
+      createDeposit("dans-3", SUBMITTED, "SRC1"),
     )
     ReportGenerator.filterDepositsByDepositor(deposits, Some("dans-1")).size shouldBe 2
   }
 
   it should "should return empty list if none of the id's matches" in {
     val deposits = List(
-      createDeposit("dans-2", DRAFT),
-      createDeposit("dans-5", SUBMITTED),
-      createDeposit("dans-3", SUBMITTED),
+      createDeposit("dans-2", DRAFT, "SRC2"),
+      createDeposit("dans-5", SUBMITTED, "SRC1"),
+      createDeposit("dans-3", SUBMITTED, "SRC1"),
     )
     ReportGenerator.filterDepositsByDepositor(deposits, Some("dans-1")) shouldBe empty
   }
 
   it should "should return all deposits if the given depositorId is empty" in {
     val deposits = List(
-      createDeposit("dans-2", DRAFT),
-      createDeposit("dans-5", SUBMITTED),
-      createDeposit("dans-3", SUBMITTED),
+      createDeposit("dans-2", DRAFT, "SRC2"),
+      createDeposit("dans-5", SUBMITTED, "SRC1"),
+      createDeposit("dans-3", SUBMITTED, "SRC1"),
     )
     ReportGenerator.filterDepositsByDepositor(deposits, None).size shouldBe 3
   }
 
   it should "should return all deposits if the given depositorId is empty and one of the depositorIds is null" in {
     val deposits = List(
-      createDeposit(null, DRAFT),
-      createDeposit("dans-5", SUBMITTED),
-      createDeposit("dans-3", SUBMITTED),
+      createDeposit(null, DRAFT, "SRC2"),
+      createDeposit("dans-5", SUBMITTED, "SRC1"),
+      createDeposit("dans-3", SUBMITTED, "SRC1"),
     )
     ReportGenerator.filterDepositsByDepositor(deposits, None).size shouldBe 3
   }
 
   it should "should skip all depositorId = null deposits if the given depositorId is given" in {
     val deposits = List(
-      createDeposit(null, DRAFT),
-      createDeposit("dans-1", SUBMITTED),
-      createDeposit("dans-1", SUBMITTED),
+      createDeposit(null, DRAFT, "SRC2"),
+      createDeposit("dans-1", SUBMITTED, "SRC1"),
+      createDeposit("dans-1", SUBMITTED, "SRC1"),
     )
     ReportGenerator.filterDepositsByDepositor(deposits, Some("dans-1")).size shouldBe 2
   }
@@ -124,14 +124,14 @@ class ReportGeneratorSpec extends TestSupportFixture
 
   "outputErrorReport" should "only print the deposits containing an error" in {
     val baos = new ByteArrayOutputStream()
-    val errorDeposit = createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)) //violates the rule ARCHIVED must be registered when DANS doi
-    val noDansDoiDeposit = createDeposit("dans-1", ARCHIVED).copy(dansDoiRegistered = Some(false), doiIdentifier = "11.11111/other-doi-123")
+    val errorDeposit = createDeposit("dans-0", ARCHIVED, "SRC1").copy(dansDoiRegistered = Some(false)) //violates the rule ARCHIVED must be registered when DANS doi
+    val noDansDoiDeposit = createDeposit("dans-1", ARCHIVED, "SRC1").copy(dansDoiRegistered = Some(false), doiIdentifier = "11.11111/other-doi-123")
     val ps: PrintStream = new PrintStream(baos, true)
     val deposits = List(
       errorDeposit,
       noDansDoiDeposit, //does not violate any rule
-      createDeposit("dans-2", SUBMITTED), //does not violate any rule
-      createDeposit("dans-3", SUBMITTED), //does not violate any rule
+      createDeposit("dans-2", SUBMITTED, "SRC1"), //does not violate any rule
+      createDeposit("dans-3", SUBMITTED, "SRC1"), //does not violate any rule
     )
     outputErrorReportManaged(ps, deposits)
     val errorReport = baos.toString
@@ -143,9 +143,9 @@ class ReportGeneratorSpec extends TestSupportFixture
     val baos = new ByteArrayOutputStream()
     val ps: PrintStream = new PrintStream(baos, true)
     val deposits = List(
-      createDeposit("dans-0", DRAFT).copy(dansDoiRegistered = Some(false)),
-      createDeposit("dans-1", SUBMITTED),
-      createDeposit("dans-1", SUBMITTED),
+      createDeposit("dans-0", DRAFT, "SRC2").copy(dansDoiRegistered = Some(false)),
+      createDeposit("dans-1", SUBMITTED, "SRC1"),
+      createDeposit("dans-1", SUBMITTED, "SRC1"),
     )
     outputErrorReportManaged(ps, deposits)
 
@@ -157,12 +157,12 @@ class ReportGeneratorSpec extends TestSupportFixture
     val baos = new ByteArrayOutputStream()
     val ps: PrintStream = new PrintStream(baos, true)
     val deposits = List(
-      createDeposit("dans-0", ARCHIVED).copy(dansDoiRegistered = Some(false)), //violates the rule ARCHIVED must be registered
-      createDeposit("dans-1", FAILED),
-      createDeposit("dans-2", REJECTED),
-      createDeposit("dans-3", INVALID),
-      createDeposit("dans-4", UNKNOWN),
-      createDeposit("dans-5", null),
+      createDeposit("dans-0", ARCHIVED, "SRC1").copy(dansDoiRegistered = Some(false)), //violates the rule ARCHIVED must be registered
+      createDeposit("dans-1", FAILED, "SRC1"),
+      createDeposit("dans-2", REJECTED, "SRC1"),
+      createDeposit("dans-3", INVALID, "SRC2"),
+      createDeposit("dans-4", UNKNOWN, "SRC1"),
+      createDeposit("dans-5", null, "SRC1"),
     )
     outputErrorReportManaged(ps, deposits)
 
@@ -184,6 +184,7 @@ class ReportGeneratorSpec extends TestSupportFixture
     s"${ deposit.depositor }," +
       s"${ deposit.depositId }," +
       s"${ Option(deposit.state).getOrElse("") }," +
+      s"${ deposit.source }," +
       s"${ deposit.doiIdentifier }," +
       s"${ deposit.registeredString }," +
       s"${ deposit.fedoraIdentifier.toString }," +
@@ -194,26 +195,26 @@ class ReportGeneratorSpec extends TestSupportFixture
       s"${ deposit.storageSpace.toString }"
   }
 
-  private def createDeposit(depositorId: String, state: State) = {
-    Deposit(UUID.randomUUID().toString, "10.17026/dans-12345", Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "")
+  private def createDeposit(depositorId: String, state: State, source: String) = {
+    Deposit(UUID.randomUUID().toString, "10.17026/dans-12345", Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "", source)
   }
 
   private def createDeposits = List(
-    createDeposit("dans-1", ARCHIVED),
-    createDeposit("dans-1", ARCHIVED),
-    createDeposit("dans-1", DRAFT),
-    createDeposit("dans-1", FINALIZING),
-    createDeposit("dans-1", INVALID),
-    createDeposit("dans-1", REJECTED),
-    createDeposit("dans-1", STALLED),
-    createDeposit("dans-1", SUBMITTED),
-    createDeposit("dans-1", SUBMITTED),
-    createDeposit("dans-1", SUBMITTED),
-    createDeposit("dans-1", SUBMITTED), // duplicate deposits are allowed
-    createDeposit("dans-1", UNKNOWN),
-    createDeposit("dans-1", UNKNOWN),
-    createDeposit("dans-1", null), // mapped and added to unknown
-    createDeposit("dans-1", null),
+    createDeposit("dans-1", ARCHIVED, "SRC1"),
+    createDeposit("dans-1", ARCHIVED, "SRC1"),
+    createDeposit("dans-1", DRAFT, "SRC2"),
+    createDeposit("dans-1", FINALIZING, "SRC2"),
+    createDeposit("dans-1", INVALID, "SRC1"),
+    createDeposit("dans-1", REJECTED, "SRC1"),
+    createDeposit("dans-1", STALLED, "SRC1"),
+    createDeposit("dans-1", SUBMITTED, "SRC1"),
+    createDeposit("dans-1", SUBMITTED, "SRC1"),
+    createDeposit("dans-1", SUBMITTED, "SRC1"),
+    createDeposit("dans-1", SUBMITTED, "SRC1"), // duplicate deposits are allowed
+    createDeposit("dans-1", UNKNOWN, "SRC2"),
+    createDeposit("dans-1", UNKNOWN, "SRC1"),
+    createDeposit("dans-1", null, "SRC1"), // mapped and added to unknown
+    createDeposit("dans-1", null, "SRC1"),
   )
 }
 

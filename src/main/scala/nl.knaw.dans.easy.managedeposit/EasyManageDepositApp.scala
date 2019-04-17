@@ -42,8 +42,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     .asScala.toList
     .map(prefix => prefix.asInstanceOf[String])
 
-  private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age]): Deposits = {
-    depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge))
+  private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], source: String): Deposits = {
+    depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge, source))
   }
 
   def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[Unit] = {
@@ -55,7 +55,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(retryStalledDeposit(filterOnDepositor))
   }
 
-  private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age])(deposits: List[Path]): Deposits = {
+  private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], source: String)(deposits: List[Path]): Deposits = {
     trace(filterOnDepositor)
     deposits.filter(Files.isDirectory(_))
       .flatMap { depositDirPath =>
@@ -65,20 +65,20 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
           // if the properties file does not exist continue the process with an empty properties file
           // if the file does exist but the user cannot read it, this will return an exception
           _ <- depositManager.validateUserRightsForPropertiesFile()
-          deposit <- getDeposit(filterOnDepositor, filterOnAge, depositManager)
+          deposit <- getDeposit(filterOnDepositor, filterOnAge, depositManager, source)
         } yield deposit
         deposit.unsafeGetOrThrow
       }
   }
 
-  private def getDeposit(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], depositManager: DepositManager): Try[Option[Deposit]] = {
+  private def getDeposit(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], depositManager: DepositManager, source: String): Try[Option[Deposit]] = {
     val depositorId = depositManager.getDepositorId.getOrElse(notAvailable)
     lazy val lastModified: Option[DateTime] = getLastModifiedTimestamp(depositManager.depositDirPath)
     // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
     val hasDepositor = filterOnDepositor.forall(depositorId ==)
     lazy val shouldReport = filterOnAge.forall(age => lastModified.forall(mod => Duration.millis(DateTime.now(mod.getZone).getMillis - mod.getMillis).getStandardDays <= age))
 
-    if (hasDepositor && shouldReport) Success(
+    if (hasDepositor && shouldReport) Try {
       Some {
         Deposit(
           depositId = depositManager.getDepositId.getOrElse(notAvailable),
@@ -92,8 +92,10 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
           numberOfContinuedDeposits = depositManager.getNumberOfContinuedDeposits,
           storageSpace = FileUtils.sizeOfDirectory(depositManager.depositDirPath.toFile),
           lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse(notAvailable),
+          source = source,
         )
-      })
+      }
+    }
     else Success(None)
   }
 
@@ -210,22 +212,22 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def summary(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
-    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
-    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
+    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age, "SWORD2")
+    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age, "INGEST_FLOW")
     ReportGenerator.outputSummary(sword2Deposits ++ ingestFlowDeposits, depositor)(Console.out)
     "End of summary report."
   }
 
   def createFullReport(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
-    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
-    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
+    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age, "SWORD2")
+    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age, "INGEST_FLOW")
     ReportGenerator.outputFullReport(sword2Deposits ++ ingestFlowDeposits)(Console.out)
     "End of full report."
   }
 
   def createErrorReport(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
-    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age)
-    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age)
+    val sword2Deposits = collectDataFromDepositsDir(sword2DepositsDir, depositor, age, "SWORD2")
+    val ingestFlowDeposits = collectDataFromDepositsDir(ingestFlowInbox, depositor, age, "INGEST_FLOW")
     ReportGenerator.outputErrorReport(sword2Deposits ++ ingestFlowDeposits)(Console.out)
     "End of error report."
   }
