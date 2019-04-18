@@ -110,12 +110,14 @@ class ReportGeneratorSpec extends TestSupportFixture
 
     val reportOutput = baos.toString
     reportOutput should include(s"Timestamp          : $currentTime")
-    reportOutput should include(f"Number of deposits : ${ 15 }%10d")
-    reportOutput should include("Total space        :      1.8 M") // (129000 * 15 ) / (1024 * 1024)
+    reportOutput should include(f"Number of deposits : ${ 17 }%10d")
+    reportOutput should include("Total space        :      2.1 M") // (129000 * 17 ) / (1024 * 1024)
     reportOutput should include regex toStateDetailsRegex(ARCHIVED, 2, 252.0)
     reportOutput should include regex toStateDetailsRegex(DRAFT, 1, 126.0)
     reportOutput should include regex toStateDetailsRegex(FINALIZING, 1, 126.0)
     reportOutput should include regex toStateDetailsRegex(INVALID, 1, 126.0)
+    reportOutput should include regex toStateDetailsRegex(IN_REVIEW, 1, 126.0)
+    reportOutput should include regex toStateDetailsRegex(FEDORA_ARCHIVED, 1, 126.0)
     reportOutput should include regex toStateDetailsRegex(REJECTED, 1, 126.0)
     reportOutput should include regex toStateDetailsRegex(STALLED, 1, 126.0)
     reportOutput should include regex toStateDetailsRegex(SUBMITTED, 4, 503.9)
@@ -206,6 +208,8 @@ class ReportGeneratorSpec extends TestSupportFixture
     createDeposit("dans-1", FINALIZING, "SRC2"),
     createDeposit("dans-1", INVALID, "SRC1"),
     createDeposit("dans-1", REJECTED, "SRC1"),
+    createDeposit("dans-1", IN_REVIEW, "SRC1"),
+    createDeposit("dans-1", FEDORA_ARCHIVED, "SRC1"),
     createDeposit("dans-1", STALLED, "SRC1"),
     createDeposit("dans-1", SUBMITTED, "SRC1"),
     createDeposit("dans-1", SUBMITTED, "SRC1"),
