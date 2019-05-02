@@ -26,27 +26,18 @@ import scala.util.{ Failure, Success }
 
 class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
-  lazy private val depositDir = {
-    val path = testDir / "inputForEasyManageDeposit/"
-    if (path.exists) path.delete()
-    path.createDirectories()
-    path
-  }
-
-  private val depositOne = depositDir / "aba410b6-1a55-40b2-9ebe-6122aad00285"
-  private val depositOnePath = depositOne.toJava.toPath
   private val depositDirWithoutProperties = depositDir / "deposit-no-properties"
-  private val depositDirWithoutPropertiesPath = depositDirWithoutProperties.toJava.toPath
+  private val depositDirWithoutPropertiesPath = depositDirWithoutProperties.path
   private val nonExistingDeposit = depositDir / "deposit-3"
-  private val nonExistingDepositPath = nonExistingDeposit.toJava.toPath
+  private val nonExistingDepositPath = nonExistingDeposit.path
   private val depositWithoutDepositor = depositDir / "deposit-no-depositor-id"
-  private val depositWithoutDepositorPath = depositWithoutDepositor.toJava.toPath
+  private val depositWithoutDepositorPath = depositWithoutDepositor.path
   private val ruimteReis01 = depositDir / "input-ruimtereis01"
-  private val ruimteReis01Path = ruimteReis01.toJava.toPath
+  private val ruimteReis01Path = ruimteReis01.path
   private val ruimteReis02 = depositDir / "input-ruimtereis02"
-  private val ruimteReis02Path = ruimteReis02.toJava.toPath
+  private val ruimteReis02Path = ruimteReis02.path
   private val ruimteReis05 = depositDir / "input-ruimtereis05"
-  private val ruimteReis05Path = ruimteReis05.toJava.toPath
+  private val ruimteReis05Path = ruimteReis05.path
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -80,15 +71,15 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   "validateThatDirIsReadable" should "throw an NotReadableException if a directory does not exist" in {
     val depositManager = new DepositManager(nonExistingDepositPath)
     depositManager.validateThatDepositDirectoryIsReadable() should matchPattern {
-      case Failure(nre: NotReadableException) =>
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $nonExistingDepositPath"=>
     }
   }
 
-  it should "throw an NotReadableException if the user does not have the permission to read the dir" in {
+  it should "throw an NotReadableException if the user does not have the permission to read the deposit directory" in {
     depositDirWithoutProperties.removePermission(PosixFilePermission.OWNER_READ)
     val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
     depositManager.validateThatDepositDirectoryIsReadable() should matchPattern {
-      case Failure(nre: NotReadableException) =>
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $depositDirWithoutPropertiesPath" =>
     }
     depositDirWithoutProperties.addPermission(PosixFilePermission.OWNER_READ)
   }
@@ -103,7 +94,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val properties = depositOne / "deposit.properties"
     properties.removePermission(PosixFilePermission.OWNER_READ)
     depositManager.validateUserRightsForPropertiesFile() should matchPattern {
-      case Failure(nre: NotReadableException) =>
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read ${ depositOne / "deposit.properties" }" =>
     }
     properties.addPermission(PosixFilePermission.OWNER_READ)
   }
@@ -118,7 +109,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val properties = depositOne / "deposit.properties"
     properties.removePermission(PosixFilePermission.OWNER_READ)
     depositManager.validateThatDepositPropertiesIsReadable() should matchPattern {
-      case Failure(nre: NotReadableException) =>
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read ${ depositOne / "deposit.properties" }" =>
     }
     properties.addPermission(PosixFilePermission.OWNER_READ)
   }
@@ -126,7 +117,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "throw an exception if deposit.properties does not exist" in {
     val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
     depositManager.validateThatDepositPropertiesIsReadable() should matchPattern {
-      case Failure(nre: NotReadableException) =>
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read ${ depositDirWithoutProperties / "deposit.properties" }" =>
     }
   }
 
@@ -137,14 +128,12 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
   "getDepositId" should "return the id field bag-store.bag-id field of deposit.properties file" in {
     val depositManager = new DepositManager(depositOnePath)
-    val depositId = depositManager.getDepositId
-    depositId.value shouldBe depositOnePath.getFileName.toString
+   depositManager.getDepositId.value shouldBe depositOnePath.getFileName.toString
   }
 
   it should "return the name of the directory when the file deposit.properties does not exist" in {
     val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
-    val depositId = depositManager.getDepositId
-    depositId.value shouldBe "deposit-no-properties"
+    depositManager.getDepositId.value shouldBe "deposit-no-properties"
   }
 
   "saveProperties" should "save the updated state to the deposit.properties file" in {
@@ -156,9 +145,10 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     // new manager to check the updated state
     val updatedDepositManager = new DepositManager(depositOnePath)
     updatedDepositManager.getStateLabel shouldBe REJECTED
+    depositManager.getStateLabel shouldBe REJECTED
   }
 
-  it should "not return a null pointer if the deposit.properties cannot be found" in {
+  it should "not throw a NullPointerException if the deposit.properties cannot be found" in {
     val depositManagerNoProperties = new DepositManager(depositDirWithoutPropertiesPath)
     depositManagerNoProperties.setState(FAILED)
     depositManagerNoProperties.saveProperties()
@@ -168,9 +158,9 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val setupDepositManager = new DepositManager(depositOnePath)
     setupDepositManager.setProperty("state.label", "NON-EXISTING-VALUE")
     setupDepositManager.saveProperties()
-
     val depositManager = new DepositManager(depositOnePath)
-    depositManager.getStateLabel
+    depositManager.getStateLabel shouldBe UNKNOWN
+    setupDepositManager.getStateLabel shouldBe UNKNOWN
   }
 
   "depositAgeIsLargerThanMinimalRequiredAge" should "return true if required age is 4 days and the deposit age is 5 days " in {
@@ -337,7 +327,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     }
   }
 
-  private def setCreationDateForTesting(daysAgo: Int) = {
+  private def setCreationDateForTesting(daysAgo: Int): Unit = {
     val setupDepositManager = new DepositManager(depositOnePath)
     val fiveDaysAgo = DateTime.now(DateTimeZone.UTC).minusDays(daysAgo)
     setupDepositManager.setProperty("creation.timestamp", fiveDaysAgo.toString)

@@ -86,6 +86,11 @@
             <groupId>org.joda</groupId>
             <artifactId>joda-convert</artifactId>
         </dependency>
+        <!-- fedora -->
+        <dependency>
+            <groupId>com.yourmediashelf.fedora.client</groupId>
+            <artifactId>fedora-client-core</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.github.pathikrit</groupId>
             <artifactId>better-files_2.12</artifactId>

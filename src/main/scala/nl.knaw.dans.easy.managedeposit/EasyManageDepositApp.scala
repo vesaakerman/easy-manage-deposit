@@ -15,8 +15,11 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
+import java.net.{ URI, URL }
 import java.nio.file.{ Files, Path, Paths }
 
+import com.yourmediashelf.fedora.client.{ FedoraClient, FedoraCredentials }
+import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.easy.managedeposit.State._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -31,13 +34,19 @@ import scala.math.Ordering.{ Long => LongComparator }
 import scala.util.{ Success, Try }
 import scala.xml.{ NodeSeq, XML }
 
-class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging {
+class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging with Curation {
 
   private val sword2DepositsDir = Paths.get(configuration.properties.getString("easy-sword2"))
   private val ingestFlowInbox = Paths.get(configuration.properties.getString("easy-ingest-flow-inbox"))
   private val metadataDirName = "metadata"
-  private val depositPropertiesFileName = "deposit.properties"
   private val dataSetFileName = "dataset.xml"
+  private val fedoraCredentials = new FedoraCredentials(
+    new URL(configuration.properties.getString("fedora.url")),
+    configuration.properties.getString("fedora.user"),
+    configuration.properties.getString("fedora.password"))
+  val fedora = new Fedora(new FedoraClient(fedoraCredentials))
+  val landingPageBaseUrl = new URI(configuration.properties.getString("landing-pages.base-url"))
+
   private implicit val dansDoiPrefixes: List[String] = configuration.properties.getList("dans-doi.prefixes")
     .asScala.toList
     .map(prefix => prefix.asInstanceOf[String])
@@ -49,10 +58,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[Unit] = {
     val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
     depositsDir.list(deleteDepositsFromDepositsDir(filterOnDepositor, age, toBeDeletedState, onlyData))
-  }
-
-  def retryStalledDeposit(depositsDir: Path, filterOnDepositor: Option[DepositorId]): Unit = {
-    depositsDir.list(retryStalledDeposit(filterOnDepositor))
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], source: String)(deposits: List[Path]): Deposits = {
@@ -106,31 +111,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
         // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
         depositManager.deleteDepositFromDir(filterOnDepositor, age, state, onlyData)
           .doIfFailure { case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e) }
-      }
-  }
-
-  def retryStalledDeposit(filterOnDepositor: Option[DepositorId])(list: List[Path]): Unit = {
-    list.filter(Files.isDirectory(_))
-      .foreach { depositDirPath =>
-        val depositPropertiesFilePath = depositDirPath.resolve(depositPropertiesFileName)
-        if (!Files.isReadable(depositDirPath)) {
-          logErrorAndThrowNotReadableException(depositDirPath)
-        }
-        else if (!Files.isReadable(depositPropertiesFilePath)) {
-          logErrorAndThrowNotReadableException(depositPropertiesFilePath)
-        }
-        val depositManager = new DepositManager(depositDirPath)
-        val depositorId = depositManager.getDepositorId.getOrElse(notAvailable)
-        val depositState = depositManager.getStateLabel
-
-        // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-        if (filterOnDepositor.forall(depositorId ==)) {
-          if (depositState == STALLED) {
-            logger.info(s"RESET to SUBMITTED for $depositorId on $depositDirPath")
-            depositManager.setState(SUBMITTED)
-            depositManager.saveProperties()
-          }
-        }
       }
   }
 
@@ -232,15 +212,24 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of error report."
   }
 
-  def retryDepositor(depositor: Option[DepositorId]): Try[String] = Try {
-    retryStalledDeposit(ingestFlowInbox, depositor)
-    "STALLED states were replaced by SUBMITTED states."
-  }
-
   def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[String] = {
     for {
       _ <- deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData)
       _ <- deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData)
     } yield "Execution of clean: success "
+  }
+
+  def adminCurate(easyDatasetId: DatasetId): Try[FeedBackMessage] = {
+    for {
+      manager <- findDepositManagerForDatasetId(easyDatasetId)
+      curationMessage <- curate(manager)
+    } yield curationMessage
+  }
+
+  private def findDepositManagerForDatasetId(easyDatasetId: DatasetId): Try[DepositManager] = Try {
+    ingestFlowInbox
+      .list(_.collect { case deposit if Files.isDirectory(deposit) => new DepositManager(deposit) })
+      .collectFirst { case manager if manager.getDatasetId.contains(easyDatasetId) => manager }
+      .getOrElse(throw new IllegalArgumentException(s"No deposit found for datatsetId $easyDatasetId"))
   }
 }

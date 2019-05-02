@@ -30,7 +30,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |  $printedName report full [-a, --age <n>] [<depositor>]
        |  $printedName report summary [-a, --age <n>] [<depositor>]
        |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [<depositor>]
-       |  $printedName retry [<depositor>]
+       |  $printedName sync-fedora-state <easy-dataset-id>
      """.stripMargin
   version(s"$printedName v${ configuration.version }")
   banner(
@@ -85,12 +85,12 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
   }
   addSubcommand(cleanCmd)
 
-  val retryCmd = new Subcommand("retry") {
-    val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
+  val syncFedoraState = new Subcommand("sync-fedora-state") {
+    val easyDatasetId: ScallopOption[DatasetId] = trailArg("easy-dataset-id", descr = "The dataset identifier of the deposit which deposit.properties are being synced with Fedora")
+    descr("Syncs a deposit with Fedora, checks if the deposit is properly registered in Fedora and updates the deposit.properties accordingly")
     footer(SUBCOMMAND_SEPARATOR)
   }
-  addSubcommand(retryCmd)
-
+  addSubcommand(syncFedoraState)
 
   footer("")
   verify()

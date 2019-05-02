@@ -17,20 +17,19 @@ package nl.knaw.dans.easy.managedeposit
 
 import java.nio.file.{ Files, Path }
 
+import nl.knaw.dans.easy.managedeposit.DepositManager.{ depositIdKey, depositPropertiesFileName, stateLabelKey }
 import nl.knaw.dans.easy.managedeposit.State.{ State, UNKNOWN }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
+import org.apache.commons.lang.BooleanUtils
 import org.joda.time.{ DateTime, DateTimeZone, Duration }
 
 import scala.language.postfixOps
 import scala.util.{ Success, Try }
 
 class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
-  private val depositPropertiesFileName: String = "deposit.properties"
-  private val depositIdKey = "bag-store.bag-id"
-  private val stateLabelKey = "state.label"
   private lazy val depositProperties: Option[PropertiesConfiguration] = findDepositProperties
 
   def getNumberOfContinuedDeposits: Int = {
@@ -56,6 +55,10 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     getProperty(depositIdKey).orElse(Option(depositDirPath.getFileName).map(_.toString))
   }
 
+  def getDatasetId: Option[String] = {
+    getProperty("identifier.fedora")
+  }
+
   def getStateDescription: Option[String] = {
     getProperty("state.description")
   }
@@ -66,6 +69,14 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
 
   def getCreationTime: Option[DateTime] = {
     getProperty("creation.timestamp").map(timeString => new DateTime(timeString))
+  }
+
+  def isCurationRequired: Boolean = {
+    getProperty("curation.required").fold(false)(BooleanUtils.toBoolean)
+  }
+
+  def isCurationPerformed: Boolean = {
+    getProperty("curation.performed").fold(false)(BooleanUtils.toBoolean)
   }
 
   /**
@@ -80,6 +91,10 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
 
   def setState(stateLabel: State): Unit = {
     setProperty(stateLabelKey, stateLabel.toString)
+  }
+
+  def setProperties(propertiesMap: (String, String)*): Unit = {
+    propertiesMap.foreach { case (key, value) => depositProperties.foreach(_.setProperty(key, value)) }
   }
 
   def setProperty(key: String, value: String): Unit = {
@@ -169,7 +184,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     Files.exists(depositPropertiesFilePath)
   }
 
-  private def end = DateTime.now(DateTimeZone.UTC)
+  private def end: DateTime = DateTime.now(DateTimeZone.UTC)
 
   private def depositPropertiesFilePath = depositDirPath.resolve(depositPropertiesFileName)
 
@@ -190,4 +205,10 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
       None
     }
   }
+}
+
+object DepositManager {
+  val depositPropertiesFileName: String = "deposit.properties"
+  val depositIdKey = "bag-store.bag-id"
+  val stateLabelKey = "state.label"
 }

@@ -15,19 +15,13 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-object State extends Enumeration {
-  type State = Value
-  val ARCHIVED: State = Value("ARCHIVED")
-  val DRAFT: State = Value("DRAFT")
-  val FAILED: State = Value("FAILED")
-  val FEDORA_ARCHIVED: State = Value("FEDORA_ARCHIVED")
-  val FINALIZING: State = Value("FINALIZING")
-  val IN_REVIEW: State = Value("IN_REVIEW")
-  val INVALID: State = Value("INVALID")
-  val REJECTED: State = Value("REJECTED")
-  val SUBMITTED: State = Value("SUBMITTED")
-  val UNKNOWN: State = Value("UNKNOWN")
-  val UPLOADED: State = Value("UPLOADED")
+object FedoraState extends Enumeration {
+  type FedoraState = Value
+  val PUBLISHED: FedoraState = Value("PUBLISHED")
+  val SUBMITTED: FedoraState = Value("SUBMITTED")
+  val DELETED: FedoraState = Value("DELETED")
+  val DRAFT: FedoraState = Value("DRAFT")
+  val MAINTENANCE: FedoraState = Value("MAINTENANCE")
 
-  def toState(stateName: String): Option[State] = State.values.find(_.toString == stateName)
+  def toState(stateName: String): Option[FedoraState] = FedoraState.values.find(_.toString == stateName)
 }

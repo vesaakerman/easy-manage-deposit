@@ -29,4 +29,14 @@ trait TestSupportFixture extends FlatSpec with Matchers with OptionValues {
     path.createDirectories()
     path
   }
+
+  lazy protected val depositDir = {
+    val path = testDir / "inputForEasyManageDeposit/"
+    if (path.exists) path.delete()
+    path.createDirectories()
+    path
+  }
+
+  protected val depositOne = depositDir / "aba410b6-1a55-40b2-9ebe-6122aad00285"
+  protected val depositOnePath = depositOne.path
 }

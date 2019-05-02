@@ -9,6 +9,7 @@ SYNOPSIS
      easy-manage-deposit report full [-a, --age <n>] [<depositor>]
      easy-manage-deposit report summary [-a, --age <n>] [<depositor>]
      easy-manage-deposit clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [<depositor>]
+     easy-manage-deposit sync-fedora-state <easy-dataset-id>
      easy-manage-deposit retry [<depositor>]
      
          
@@ -67,11 +68,12 @@ ARGUMENTS
             depositor (not required)
           ---
           
-          Subcommand: retry
+          Subcommand: sync-fedora-state - Syncs a deposit with Fedora, checks if the deposit is properly registered in Fedora and updates the deposit.properties accordingly
             -h, --help   Show help message
           
            trailing arguments:
-            depositor (not required)
+            easy-dataset-id (required)   The dataset identifier of the deposit which
+                                         deposit.properties are being synced with Fedora
           ---
     
      

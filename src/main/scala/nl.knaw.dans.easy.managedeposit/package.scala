@@ -29,6 +29,7 @@ package object managedeposit {
   type Deposits = Seq[Deposit]
   type DepositorId = String
   type Age = Int
+  type DatasetId = String
 
   val XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance"
   val XML_NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"

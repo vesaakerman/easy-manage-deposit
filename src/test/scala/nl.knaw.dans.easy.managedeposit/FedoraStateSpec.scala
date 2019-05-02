@@ -15,19 +15,25 @@
  */
 package nl.knaw.dans.easy.managedeposit
 
-object State extends Enumeration {
-  type State = Value
-  val ARCHIVED: State = Value("ARCHIVED")
-  val DRAFT: State = Value("DRAFT")
-  val FAILED: State = Value("FAILED")
-  val FEDORA_ARCHIVED: State = Value("FEDORA_ARCHIVED")
-  val FINALIZING: State = Value("FINALIZING")
-  val IN_REVIEW: State = Value("IN_REVIEW")
-  val INVALID: State = Value("INVALID")
-  val REJECTED: State = Value("REJECTED")
-  val SUBMITTED: State = Value("SUBMITTED")
-  val UNKNOWN: State = Value("UNKNOWN")
-  val UPLOADED: State = Value("UPLOADED")
+import nl.knaw.dans.easy.managedeposit.FedoraState.{ DELETED, PUBLISHED, SUBMITTED, toState }
 
-  def toState(stateName: String): Option[State] = State.values.find(_.toString == stateName)
+class FedoraStateSpec extends TestSupportFixture {
+
+  "toState" should "return a state object for a recognized state" in {
+    toState("SUBMITTED").value shouldBe SUBMITTED
+    toState("DELETED").value shouldBe DELETED
+    toState("PUBLISHED").value shouldBe PUBLISHED
+  }
+
+  it should "return a None for an unrecognized state" in {
+    toState("UNRECOGNIZED") shouldBe empty
+  }
+
+  it should "return a None for an empty string" in {
+    toState("") shouldBe empty
+  }
+
+  it should "return a None for a null" in {
+    toState(null) shouldBe empty
+  }
 }

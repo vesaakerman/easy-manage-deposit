@@ -25,7 +25,6 @@ class StateSpec extends FlatSpec with Matchers with OptionValues {
     State.toState("FAILED").value shouldBe State.FAILED
     State.toState("INVALID").value shouldBe State.INVALID
     State.toState("REJECTED").value shouldBe State.REJECTED
-    State.toState("STALLED").value shouldBe State.STALLED
     State.toState("SUBMITTED").value shouldBe State.SUBMITTED
     State.toState("UNKNOWN").value shouldBe State.UNKNOWN
     State.toState("NON-EXISITING") shouldBe None
