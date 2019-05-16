@@ -45,6 +45,19 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     File(getClass.getResource("/inputForEasyManageDeposit/").toURI).copyTo(depositDir)
   }
 
+  override def afterEach(): Unit = {
+    super.afterEach()
+    addOwnerReadPermissionIfExist(depositOne / "deposit.properties")
+    addOwnerReadPermissionIfExist(depositOne)
+    addOwnerReadPermissionIfExist(depositOne / "bag.zip.1")
+  }
+
+  private def addOwnerReadPermissionIfExist(file: File): Any = {
+    if (file.exists) {
+      file.addPermission(PosixFilePermission.OWNER_READ)
+    }
+  }
+
   "getters" should "retrieve the values from deposit.properties if it exists" in {
     val depositManager = new DepositManager(depositOnePath)
     depositManager.getDepositId.value shouldBe "aba410b6-1a55-40b2-9ebe-6122aad00285"
@@ -68,72 +81,73 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     depositManager.getDepositId.value shouldBe depositDirWithoutPropertiesPath.getFileName.toString
   }
 
-  "validateThatDirIsReadable" should "throw an NotReadableException if a directory does not exist" in {
-    val depositManager = new DepositManager(nonExistingDepositPath)
-    depositManager.validateThatDepositDirectoryIsReadable() should matchPattern {
-      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $nonExistingDepositPath"=>
-    }
+  "validateUserCanReadTheDepositDirectoryAndTheDepositProperties" should "succeed if all right are set properly" in {
+    new DepositManager(depositOnePath).validateUserCanReadTheDepositDirectoryAndTheDepositProperties() shouldBe a[Success[_]]
   }
 
-  it should "throw an NotReadableException if the user does not have the permission to read the deposit directory" in {
-    depositDirWithoutProperties.removePermission(PosixFilePermission.OWNER_READ)
-    val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
-    depositManager.validateThatDepositDirectoryIsReadable() should matchPattern {
-      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $depositDirWithoutPropertiesPath" =>
-    }
-    depositDirWithoutProperties.addPermission(PosixFilePermission.OWNER_READ)
-  }
-
-  it should "not throw an exception if user does have permission to read the folder" in {
-    val depositManager = new DepositManager(depositOnePath)
-    depositManager.validateThatDepositDirectoryIsReadable() shouldBe a[Success[_]]
-  }
-
-  "validateUserRightsForPropertiesFile" should "throw an exception if an user does not have permission to read the deposit.properties file" in {
-    val depositManager = new DepositManager(depositOnePath)
+  it should "return a failure if the user has no access right to the depositProperties" in {
     val properties = depositOne / "deposit.properties"
     properties.removePermission(PosixFilePermission.OWNER_READ)
-    depositManager.validateUserRightsForPropertiesFile() should matchPattern {
-      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read ${ depositOne / "deposit.properties" }" =>
+    new DepositManager(depositOnePath).validateUserCanReadTheDepositDirectoryAndTheDepositProperties() should matchPattern {
+      case Failure(e: NotReadableException) if e.getMessage == s"cannot read ${ depositOne / "deposit.properties" }" =>
     }
-    properties.addPermission(PosixFilePermission.OWNER_READ)
   }
 
-  it should "not throw an exception if the deposit.properties file does not exist" in {
-    val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
-    depositManager.validateUserRightsForPropertiesFile() shouldBe a[Success[_]]
-  }
-
-  "validateThatDepositPropertiesIsReadable" should "throw an exception if an user does not have permission to read the deposit.properties file" in {
-    val depositManager = new DepositManager(depositOnePath)
-    val properties = depositOne / "deposit.properties"
-    properties.removePermission(PosixFilePermission.OWNER_READ)
-    depositManager.validateThatDepositPropertiesIsReadable() should matchPattern {
-      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read ${ depositOne / "deposit.properties" }" =>
+  it should "return a failure if the user has no access right to the deposit" in {
+    depositOne.removePermission(PosixFilePermission.OWNER_READ)
+    new DepositManager(depositOnePath).validateUserCanReadTheDepositDirectoryAndTheDepositProperties() should matchPattern {
+      case Failure(e: NotReadableException) if e.getMessage == s"cannot read $depositOne" =>
     }
-    properties.addPermission(PosixFilePermission.OWNER_READ)
   }
 
-  it should "throw an exception if deposit.properties does not exist" in {
-    val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
-    depositManager.validateThatDepositPropertiesIsReadable() should matchPattern {
+  it should "fail if the depositProperties do not exist" in {
+    new DepositManager(depositDirWithoutPropertiesPath)
+      .validateUserCanReadTheDepositDirectoryAndTheDepositProperties() should matchPattern {
       case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read ${ depositDirWithoutProperties / "deposit.properties" }" =>
     }
   }
 
-  it should "not throw an null pointer exception if deposit.properties does exist" in {
-    val depositManager = new DepositManager(depositOnePath)
-    depositManager.validateThatDepositPropertiesIsReadable() shouldBe a[Success[_]]
+  it should "fail if the deposit does not exist" in {
+    new DepositManager(nonExistingDepositPath)
+      .validateUserCanReadTheDepositDirectoryAndTheDepositProperties() should matchPattern {
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $nonExistingDeposit" =>
+    }
+  }
+
+  "getLastModifiedTimestamp" should "return an option from the latest modified TimeStamp" in {
+    val today = DateTime.now()
+    new DepositManager(depositOnePath).getLastModifiedTimestamp() should matchPattern {
+      case Success(Some(d: DateTime)) if Math.abs(d.minus(today.getMillis).getMillis) < 100000 =>
+    }
+  }
+
+  it should "fail if the user does not have right to read the deposit directory" in {
+    depositOne.removePermission(PosixFilePermission.OWNER_READ)
+    new DepositManager(depositOnePath).getLastModifiedTimestamp() should matchPattern {
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $depositOne" =>
+    }
+  }
+
+  it should "fail if a zip in the deposit is not readable" in {
+    val zip = depositOne / "bag.zip.1"
+    zip.removePermission(PosixFilePermission.OWNER_READ)
+    new DepositManager(depositOnePath).getLastModifiedTimestamp() should matchPattern {
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $zip" =>
+    }
+  }
+
+  it should "fail if the deposit directory is not readable" in {
+    new DepositManager(nonExistingDepositPath).getLastModifiedTimestamp() should matchPattern {
+      case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $nonExistingDeposit" =>
+    }
   }
 
   "getDepositId" should "return the id field bag-store.bag-id field of deposit.properties file" in {
-    val depositManager = new DepositManager(depositOnePath)
-   depositManager.getDepositId.value shouldBe depositOnePath.getFileName.toString
+    new DepositManager(depositOnePath).getDepositId.value shouldBe depositOnePath.getFileName.toString
   }
 
   it should "return the name of the directory when the file deposit.properties does not exist" in {
-    val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
-    depositManager.getDepositId.value shouldBe "deposit-no-properties"
+    new DepositManager(depositDirWithoutPropertiesPath).getDepositId.value shouldBe "deposit-no-properties"
   }
 
   "saveProperties" should "save the updated state to the deposit.properties file" in {
@@ -143,8 +157,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     depositManager.saveProperties()
 
     // new manager to check the updated state
-    val updatedDepositManager = new DepositManager(depositOnePath)
-    updatedDepositManager.getStateLabel shouldBe REJECTED
+    new DepositManager(depositOnePath).getStateLabel shouldBe REJECTED
     depositManager.getStateLabel shouldBe REJECTED
   }
 
@@ -158,44 +171,35 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val setupDepositManager = new DepositManager(depositOnePath)
     setupDepositManager.setProperty("state.label", "NON-EXISTING-VALUE")
     setupDepositManager.saveProperties()
-    val depositManager = new DepositManager(depositOnePath)
-    depositManager.getStateLabel shouldBe UNKNOWN
+    new DepositManager(depositOnePath).getStateLabel shouldBe UNKNOWN
     setupDepositManager.getStateLabel shouldBe UNKNOWN
   }
 
   "depositAgeIsLargerThanMinimalRequiredAge" should "return true if required age is 4 days and the deposit age is 5 days " in {
     setCreationDateForTesting(daysAgo = 5)
-    val depositManager = new DepositManager(depositOnePath)
-    depositManager.depositAgeIsLargerThanRequiredAge(4) shouldBe true
+    new DepositManager(depositOnePath).depositAgeIsLargerThanRequiredAge(4) shouldBe true
   }
 
   it should "return false if required age is 5 days and the deposit age is 4 days " in {
     setCreationDateForTesting(daysAgo = 4)
-
-    val depositManager = new DepositManager(depositOnePath)
-    depositManager.depositAgeIsLargerThanRequiredAge(5) shouldBe false
+    new DepositManager(depositOnePath).depositAgeIsLargerThanRequiredAge(5) shouldBe false
   }
 
   it should "return false if required age is 4 days and the deposit age is 4 days " in {
     setCreationDateForTesting(daysAgo = 4)
-
-    val depositManager = new DepositManager(depositOnePath)
-    depositManager.depositAgeIsLargerThanRequiredAge(4) shouldBe false
+    new DepositManager(depositOnePath).depositAgeIsLargerThanRequiredAge(4) shouldBe false
   }
 
   it should "return false if the deposit.properties file is not found " in {
-    val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
-    depositManager.depositAgeIsLargerThanRequiredAge(3) shouldBe false
+    new DepositManager(depositDirWithoutPropertiesPath).depositAgeIsLargerThanRequiredAge(3) shouldBe false
   }
 
   "getNumberOfContinuedDeposits" should "return 2 when there are 2 zipped file in deposit dir" in {
-    val depositManager = new DepositManager(depositOnePath)
-    depositManager.getNumberOfContinuedDeposits shouldBe 2
+    new DepositManager(depositOnePath).getNumberOfContinuedDeposits shouldBe 2
   }
 
   it should "return 0 when there are 0 zipped file in deposit dir" in {
-    val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
-    depositManager.getNumberOfContinuedDeposits shouldBe 0
+    new DepositManager(depositDirWithoutPropertiesPath).getNumberOfContinuedDeposits shouldBe 0
   }
 
   it should "0 when directory does not exist" in {
@@ -228,62 +232,54 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
   it should "not delete anything if the age requirement does not match" in {
     ruimteReis01 should exist
-    val depositManager = new DepositManager(ruimteReis01Path)
     val ageThreeHundredYears = 365 * 300 // approximately 300 years
-    depositManager.deleteDepositFromDir(Some("user001"), ageThreeHundredYears, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
+    new DepositManager(ruimteReis01Path).deleteDepositFromDir(Some("user001"), ageThreeHundredYears, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
     ruimteReis01 should exist
     (File(ruimteReis01Path) / "bag") should exist
   }
 
   it should "not delete any directories if a non existent path is given" in {
     val initialDirectories = depositDir.list.size
-    val depositManager = new DepositManager(nonExistingDepositPath)
-    depositManager.deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
+    new DepositManager(nonExistingDepositPath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
       case Failure(NotReadableException(`nonExistingDepositPath`, _)) =>
     }
     initialDirectories shouldBe depositDir.list.size
   }
 
   it should "delete the directory if no depositor id is given and other conditions match" in {
-    val depositManager = new DepositManager(ruimteReis01Path)
-    depositManager.deleteDepositFromDir(None, 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    new DepositManager(ruimteReis01Path).deleteDepositFromDir(None, 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
     ruimteReis01 shouldNot exist
   }
 
   it should "not delete the directory if no depositor id is given but the state does not match" in {
-    val depositManager = new DepositManager(ruimteReis01Path)
-    depositManager.deleteDepositFromDir(None, 1, ARCHIVED, onlyData = false) shouldBe a[Success[_]]
+    new DepositManager(ruimteReis01Path).deleteDepositFromDir(None, 1, ARCHIVED, onlyData = false) shouldBe a[Success[_]]
     ruimteReis01 should exist
   }
 
   it should "not delete the deposit if the depositor id is not in the properties" in {
-    val depositManager = new DepositManager(depositWithoutDepositorPath)
-    depositManager.deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    new DepositManager(depositWithoutDepositorPath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
     depositWithoutDepositor should exist
   }
 
   it should "delete the deposit if the depositor id is not in the properties, when no filterOnDepositor id given to match" in {
-    val depositManager = new DepositManager(depositWithoutDepositorPath)
-    depositManager.deleteDepositFromDir(None, 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    new DepositManager(depositWithoutDepositorPath).deleteDepositFromDir(None, 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
     depositWithoutDepositor shouldNot exist
   }
 
   it should "be able to delete an zipped bag if something during the ingest-flow went wrong" in {
-    val depositManager = new DepositManager(ruimteReis05Path)
     ruimteReis05.list.size shouldBe 2
     (ruimteReis05 / "bag.zip.1") should exist
-    depositManager.deleteDepositFromDir(None, 1, REJECTED, onlyData = true) shouldBe a[Success[_]]
+    new DepositManager(ruimteReis05Path).deleteDepositFromDir(None, 1, REJECTED, onlyData = true) shouldBe a[Success[_]]
     ruimteReis05 should exist
     (ruimteReis05 / "bag.zip.1") shouldNot exist
     ruimteReis05.list.toSeq should have size 1
   }
 
   it should "be able to delete multiple zipped bags if something during the ingest-flow went wrong" in {
-    val depositManager = new DepositManager(depositOnePath)
     depositOne.list.size shouldBe 3
     (depositOne / "bag.zip.1") should exist
     (depositOne / "bag.zip.2") should exist
-    depositManager.deleteDepositFromDir(None, 1, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
+    new DepositManager(depositOnePath).deleteDepositFromDir(None, 1, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
     depositOne should exist
     (depositOne / "bag.zip.1") shouldNot exist
     (depositOne / "bag.zip.2") shouldNot exist
@@ -291,38 +287,32 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   }
 
   it should "not delete a directory if the creation date is not found" in {
-    val depositManager = new DepositManager(ruimteReis02Path)
     ruimteReis02 should exist
-    depositManager.deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    new DepositManager(ruimteReis02Path).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
     ruimteReis02 should exist
   }
 
   it should "return an NotReadableException if the user does not have the permission to read the dir" in {
-    ruimteReis02.removePermission(PosixFilePermission.OWNER_READ)
-    val depositManager = new DepositManager(ruimteReis02Path)
-    depositManager.deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
-      case Failure(NotReadableException(`ruimteReis02Path`, _)) =>
+    depositOne.removePermission(PosixFilePermission.OWNER_READ)
+    new DepositManager(depositOnePath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
+      case Failure(NotReadableException(`depositOnePath`, _)) =>
     }
-    ruimteReis02.addPermission(PosixFilePermission.OWNER_READ)
-    ruimteReis02 should exist
+    depositOne should exist
   }
 
   it should "return an NotReadableException if the user does not have the permission to read the deposit.properties file" in {
-    val properties = ruimteReis02 / "deposit.properties"
+    val properties = depositOne / "deposit.properties"
     val propertiesPath = properties.path
     properties.removePermission(PosixFilePermission.OWNER_READ)
-    val depositManager = new DepositManager(ruimteReis02Path)
-    depositManager.deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
+    new DepositManager(depositOnePath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
       case Failure(NotReadableException(`propertiesPath`, _)) =>
     }
-    properties.addPermission(PosixFilePermission.OWNER_READ)
-    ruimteReis02 should exist
+    depositOne should exist
   }
 
   it should "return a NotReadAbleException when the deposit.properties file is absent" in {
-    val depositManager = new DepositManager(depositDirWithoutPropertiesPath)
     val propertiesPath = (depositDirWithoutProperties / "deposit.properties").path
-    depositManager.deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
+    new DepositManager(depositDirWithoutPropertiesPath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
       case Failure(NotReadableException(`propertiesPath`, _)) =>
     }
   }

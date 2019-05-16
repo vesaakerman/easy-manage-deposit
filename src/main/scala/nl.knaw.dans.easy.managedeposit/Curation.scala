@@ -18,34 +18,32 @@ package nl.knaw.dans.easy.managedeposit
 import java.net.URI
 
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
-import nl.knaw.dans.easy.managedeposit.Curation.{ ERROR, INFO, WARN }
 import nl.knaw.dans.easy.managedeposit.FedoraState.FedoraState
 import nl.knaw.dans.easy.managedeposit.State._
-import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
-import scala.util.{ Failure, Try }
+import scala.util.{ Failure, Success, Try }
 
 trait Curation extends DebugEnhancedLogging {
   val fedora: Fedora
   val landingPageBaseUrl: URI
 
-  def curate(manager: DepositManager): Try[FeedBackMessage] = Try {
-    val depositId = manager.getDepositId.getOrElse("UNKNOWN")
-    manager.getDatasetId
+  def curate(manager: DepositManager): Try[FeedBackMessage] = {
+    val depositId = manager.getDepositId.getOrElse(manager.depositDirPath.getFileName.toString)
+    manager.getFedoraIdentifier
       .map(curate(manager, depositId))
-      .getOrElse(throw new IllegalStateException(s"[${ manager.getDepositId }]no datasetId found during curation"))
+      .getOrElse(Failure(new IllegalStateException(s"[${ manager.getDepositId }] no datasetId found during curation")))
   }
 
-  private def curate(manager: DepositManager, depositId: DepositId)(id: DatasetId): FeedBackMessage = {
+  private def curate(manager: DepositManager, depositId: DepositId)(id: DatasetId): Try[FeedBackMessage] = {
     manager.getStateLabel match {
       case State.IN_REVIEW => getFedoraStateAndUpdateProperties(manager, id, depositId)
-      case state => logAndReturnMessage(INFO, s"[$depositId] deposit with datasetId $id has state $state, no action required")
+      case state => logAndReturnMessage(s"[$depositId] deposit with datasetId $id has state $state, no action required")
     }
   }
 
-  private def getFedoraStateAndUpdateProperties(manager: DepositManager, datasetId: DatasetId, depositId: DepositId): FeedBackMessage = {
-    fetchAmdAndExtractState(datasetId, depositId).map {
+  private def getFedoraStateAndUpdateProperties(manager: DepositManager, datasetId: DatasetId, depositId: DepositId): Try[FeedBackMessage] = {
+    fetchAmdAndExtractState(datasetId, depositId).flatMap {
       case FedoraState.PUBLISHED =>
         manager.setProperties(
           "identifier.dans-doi.registered" -> "yes",
@@ -54,7 +52,7 @@ trait Curation extends DebugEnhancedLogging {
           "state.description" -> s"${ landingPageBaseUrl.resolve(datasetId) }"
         )
         manager.saveProperties()
-        logAndReturnMessage(INFO, s"[$depositId] deposit with datasetId $datasetId has been successfully curated, state shifted from $IN_REVIEW to $FEDORA_ARCHIVED")
+        logAndReturnMessage(s"[$depositId] deposit with datasetId $datasetId has been successfully curated, state shifted from $IN_REVIEW to $FEDORA_ARCHIVED")
       case FedoraState.DELETED =>
         manager.setProperties(
           "identifier.dans-doi.registered" -> "no",
@@ -63,9 +61,9 @@ trait Curation extends DebugEnhancedLogging {
           "state.description" -> "The DANS data-manager requests changes on this deposit"
         )
         manager.saveProperties()
-        logAndReturnMessage(INFO, s"[$depositId] deposit with datasetId $datasetId has been successfully curated, state shifted from $IN_REVIEW to $REJECTED")
-      case fedoraState => logAndReturnMessage(INFO, s"[$depositId] deposit with datasetId $datasetId has state $fedoraState, no action required")
-    }.getOrRecover { t: Throwable => logAndReturnMessage(ERROR, s"[$depositId] unexpected error while retrieving fedora state for datasetId $datasetId: ${ t.getMessage }") }
+        logAndReturnMessage(s"[$depositId] deposit with datasetId $datasetId has been successfully curated, state shifted from $IN_REVIEW to $REJECTED")
+      case fedoraState => logAndReturnMessage(s"[$depositId] deposit with datasetId $datasetId has state $fedoraState, no action required")
+    }
   }
 
   private[managedeposit] def fetchAmdAndExtractState(datasetId: DatasetId, depositId: DepositId): Try[FedoraState] = {
@@ -79,18 +77,8 @@ trait Curation extends DebugEnhancedLogging {
       }
   }
 
-  private def logAndReturnMessage(level: String, msg: String): String = {
-    level match {
-      case WARN => logger.warn(msg)
-      case ERROR => logger.error(msg)
-      case _ => logger.info(msg)
-    }
-    msg
+  private def logAndReturnMessage(msg: String): Try[FeedBackMessage] = {
+    logger.info(msg)
+    Success(msg)
   }
-}
-
-object Curation {
-  private val ERROR = "ERROR"
-  private val WARN = "WARN"
-  private val INFO = "INFO"
 }

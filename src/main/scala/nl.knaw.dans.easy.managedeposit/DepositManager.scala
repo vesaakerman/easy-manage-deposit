@@ -25,9 +25,12 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.BooleanUtils
 import org.joda.time.{ DateTime, DateTimeZone, Duration }
+import resource.managed
 
+import scala.math.Ordering.{ Long => LongComparator }
+import scala.collection.JavaConverters._
 import scala.language.postfixOps
-import scala.util.{ Success, Try }
+import scala.util.{ Failure, Success, Try }
 
 class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
   private lazy val depositProperties: Option[PropertiesConfiguration] = findDepositProperties
@@ -53,10 +56,6 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
 
   def getDepositId: Option[String] = {
     getProperty(depositIdKey).orElse(Option(depositDirPath.getFileName).map(_.toString))
-  }
-
-  def getDatasetId: Option[String] = {
-    getProperty("identifier.fedora")
   }
 
   def getStateDescription: Option[String] = {
@@ -116,23 +115,44 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     creationTime.fold(false)(start => new Duration(start, end).getStandardDays > age)
   }
 
-  def validateThatDepositDirectoryIsReadable(): Try[Unit] = {
-    validateThatFileIsReadable(depositDirPath)
+  def validateUserCanReadTheDepositDirectoryAndTheDepositProperties(): Try[Unit] = {
+    for {
+      _ <- validateThatDepositDirectoryIsReadable()
+      _ <- validateUserRightsForDepositDir()
+      _ <- validateThatDepositPropertiesIsReadable()
+      _ <- validateUserRightsForPropertiesFile()
+    } yield ()
   }
 
-  def validateThatDepositPropertiesIsReadable(): Try[Unit] = {
-    validateThatFileIsReadable(depositPropertiesFilePath)
+  def getLastModifiedTimestamp(): Try[Option[DateTime]] = {
+    for {
+      _ <- validateThatDepositDirectoryIsReadable()
+      _ <- validateFilesInDepositDirectoryAreReadable(depositDirPath)
+    } yield doGetLastModifiedStamp(depositDirPath)
   }
 
-  def validateUserRightsForPropertiesFile(): Try[Unit] = Try {
-    if (depositPropertiesFileExists && !Files.isReadable(depositPropertiesFilePath))
-      throw NotReadableException(depositPropertiesFilePath)
+  private def doGetLastModifiedStamp(depositDirPath: Path): Option[DateTime] = {
+    managed(Files.list(depositDirPath)).acquireAndGet {
+      _.map[Long](Files.getLastModifiedTime(_).toInstant.toEpochMilli)
+        .max(LongComparator)
+        .map[DateTime](new DateTime(_, DateTimeZone.UTC))
+        .toOption
+    }
+  }
+
+  private def validateFilesInDepositDirectoryAreReadable(depositDirPath: Path): Try[Unit] = {
+    managed(Files.list(depositDirPath)).acquireAndGet {
+      _.iterator()
+        .asScala
+        .map(path => validateThatFileIsReadable(path.toRealPath()))
+        .collectFirst { case f @ Failure(_: Exception) => f }
+        .getOrElse(Success(()))
+    }
   }
 
   def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean): Try[Unit] = {
     for {
-      _ <- validateThatDepositDirectoryIsReadable()
-      _ <- validateThatDepositPropertiesIsReadable()
+      _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
       shouldDelete = shouldDeleteDepositDir(filterOnDepositor, age, state)
       _ <- if (shouldDelete) deleteDepositFromDir(onlyData)
            else Success(())
@@ -186,7 +206,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
 
   private def end: DateTime = DateTime.now(DateTimeZone.UTC)
 
-  private def depositPropertiesFilePath = depositDirPath.resolve(depositPropertiesFileName)
+  private def depositPropertiesFilePath: Path = depositDirPath.resolve(depositPropertiesFileName)
 
   private def readDepositProperties(depositDir: Path): PropertiesConfiguration = {
     new PropertiesConfiguration() {
@@ -204,6 +224,24 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
       logger.error(s"$depositPropertiesFileName does not exist for $depositDirPath")
       None
     }
+  }
+
+  private def validateThatDepositDirectoryIsReadable(): Try[Unit] = {
+    validateThatFileIsReadable(depositDirPath)
+  }
+
+  private def validateThatDepositPropertiesIsReadable(): Try[Unit] = {
+    validateThatFileIsReadable(depositPropertiesFilePath)
+  }
+
+  private def validateUserRightsForPropertiesFile(): Try[Unit] = Try {
+    if (depositPropertiesFileExists && !Files.isReadable(depositPropertiesFilePath))
+      throw NotReadableException(depositPropertiesFilePath)
+  }
+
+  private def validateUserRightsForDepositDir(): Try[Unit] = Try {
+    if (Files.exists(depositDirPath) && !Files.isReadable(depositDirPath))
+      throw NotReadableException(depositPropertiesFilePath)
   }
 }
 

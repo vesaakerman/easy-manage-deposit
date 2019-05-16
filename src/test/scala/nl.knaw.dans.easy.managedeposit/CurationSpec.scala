@@ -75,7 +75,7 @@ class CurationSpec extends TestSupportFixture
     manager.setProperty("identifier.fedora", null)
     manager.saveProperties()
     curate(manager) should matchPattern {
-      case Failure(ise: IllegalStateException) if ise.getMessage == s"[${ manager.getDepositId }]no datasetId found during curation" =>
+      case Failure(ise: IllegalStateException) if ise.getMessage == s"[${ manager.getDepositId }] no datasetId found during curation" =>
     }
   }
 
@@ -118,12 +118,14 @@ class CurationSpec extends TestSupportFixture
     manager.getStateLabel shouldBe UNKNOWN
   }
 
-  it should "not do anything if the dataset is not know at fedora" in {
+  it should "fail if the dataset is not known at fedora" in {
     val manager = new DepositManager(depositOnePath)
     manager.setState(IN_REVIEW)
     manager.getStateLabel shouldBe IN_REVIEW
     (fedora.datasetIdExists(_: DatasetId)) expects datasetId returning Success(false)
-    curate(manager) shouldBe Success(s"[${ manager.getDepositId.value }] unexpected error while retrieving fedora state for datasetId $datasetId: datasetId $datasetId was not found in fedora")
+    curate(manager) should matchPattern {
+      case Failure(iae: IllegalArgumentException) if iae.getMessage == s"datasetId $datasetId was not found in fedora" =>
+    }
     manager.getStateDescription.value shouldBe "Deposit is valid and ready for post-submission processing"
     manager.isCurationPerformed shouldBe false
     manager.getStateLabel shouldBe IN_REVIEW
@@ -134,7 +136,9 @@ class CurationSpec extends TestSupportFixture
     manager.setState(IN_REVIEW)
     manager.getStateLabel shouldBe IN_REVIEW
     (fedora.datasetIdExists(_: DatasetId)) expects datasetId returning Failure(new RuntimeException("Connection Refused"))
-    curate(manager) shouldBe Success(s"[${ manager.getDepositId.value }] unexpected error while retrieving fedora state for datasetId $datasetId: Connection Refused")
+    curate(manager) should matchPattern {
+      case Failure(rte: RuntimeException) if rte.getMessage == "Connection Refused" =>
+    }
     manager.getStateDescription.value shouldBe "Deposit is valid and ready for post-submission processing"
     manager.isCurationPerformed shouldBe false
   }
