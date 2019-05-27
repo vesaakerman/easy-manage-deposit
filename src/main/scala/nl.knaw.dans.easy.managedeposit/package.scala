@@ -26,8 +26,9 @@ import scala.collection.JavaConverters._
 package object managedeposit {
 
   type DepositId = String
-  type Deposits = Seq[Deposit]
+  type Deposits = Seq[DepositInformation]
   type DepositorId = String
+  type Deposit = Path
   type Age = Int
   type DatasetId = String
 

@@ -56,8 +56,8 @@ object Command extends App with DebugEnhancedLogging {
         app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
       else
         Try { "Clean operation aborted by user" }
-    case (curate @ commandLine.`syncFedoraState`) :: Nil =>
-      app.adminCurate(curate.easyDatasetId())
+    case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
+      app.syncFedoraState(syncFedora.easyDatasetId())
     case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))
   }
 

@@ -17,7 +17,7 @@ package nl.knaw.dans.easy.managedeposit
 
 import java.nio.file.{ Files, Path }
 
-import nl.knaw.dans.easy.managedeposit.DepositManager.{ depositIdKey, depositPropertiesFileName, stateLabelKey }
+import nl.knaw.dans.easy.managedeposit.DepositManager._
 import nl.knaw.dans.easy.managedeposit.State.{ State, UNKNOWN }
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
@@ -27,17 +27,19 @@ import org.apache.commons.lang.BooleanUtils
 import org.joda.time.{ DateTime, DateTimeZone, Duration }
 import resource.managed
 
-import scala.math.Ordering.{ Long => LongComparator }
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
+import scala.math.Ordering.{ Long => LongComparator }
 import scala.util.{ Failure, Success, Try }
+import scala.xml.{ NodeSeq, XML }
 
-class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
+class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
   private lazy val depositProperties: Option[PropertiesConfiguration] = findDepositProperties
+  private lazy val lastModified: Option[DateTime] = getLastModifiedTimestamp.unsafeGetOrThrow
 
   def getNumberOfContinuedDeposits: Int = {
-    if (Files.exists(depositDirPath)) {
-      depositDirPath.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$""")))
+    if (Files.exists(deposit)) {
+      deposit.list(_.count(_.getFileName.toString.matches("""^.*\.zip\.\d+$""")))
     }
     else 0
   }
@@ -55,7 +57,7 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
   }
 
   def getDepositId: Option[String] = {
-    getProperty(depositIdKey).orElse(Option(depositDirPath.getFileName).map(_.toString))
+    getProperty(depositIdKey).orElse(Option(deposit.getFileName).map(_.toString))
   }
 
   def getStateDescription: Option[String] = {
@@ -104,15 +106,35 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     depositProperties.foreach(_.save(depositPropertiesFileName))
   }
 
-  def validateThatFileIsReadable(path: Path): Try[Unit] = Try {
-    if (!Files.isReadable(path))
-      throw NotReadableException(path)
+  def hasDepositor(filterOnDepositor: Option[DepositorId]): Boolean = {
+    filterOnDepositor.forall(getDepositorId.getOrElse(notAvailable) ==)
   }
 
-  def depositAgeIsLargerThanRequiredAge(age: Int): Boolean = {
+  def getDepositInformation(source: String)(implicit dansDoiPrefixes: List[String]): Try[DepositInformation] = Try {
+    DepositInformation(
+      depositId = getDepositId.getOrElse(notAvailable),
+      doiIdentifier = getDoi.map(_.getOrElse(notAvailable)).unsafeGetOrThrow,
+      dansDoiRegistered = getDansDoiRegistered.map(BooleanUtils.toBoolean),
+      fedoraIdentifier = getFedoraIdentifier.getOrElse(notAvailable),
+      depositor = getDepositorId.getOrElse(notAvailable),
+      state = getStateLabel,
+      description = getStateDescription.getOrElse(notAvailable),
+      creationTimestamp = getCreationTime.getOrElse(notAvailable).toString,
+      numberOfContinuedDeposits = getNumberOfContinuedDeposits,
+      storageSpace = FileUtils.sizeOfDirectory(deposit.toFile),
+      lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse(notAvailable),
+      source = source,
+    )
+  }.doIfFailure { case t: Throwable => logger.error(s"[${ deposit.getFileName }] Error while getting depositInformation: ${ t.getMessage }") }
+
+  def depositAgeIsLargerThanRequiredAge(age: Age): Boolean = { // used in delete age check
     val creationTime = getCreationTime
     if (creationTime.isEmpty) logger.warn(s"deposit: $getDepositId does not have a creation time") // a doIfEmpty method would be nice
     creationTime.fold(false)(start => new Duration(start, end).getStandardDays > age)
+  }
+
+  def isOlderThan(filterOnAge: Option[Age]): Boolean = { // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
+    filterOnAge.forall(age => lastModified.forall(mod => Duration.millis(DateTime.now(mod.getZone).getMillis - mod.getMillis).getStandardDays <= age))
   }
 
   def validateUserCanReadTheDepositDirectoryAndTheDepositProperties(): Try[Unit] = {
@@ -124,30 +146,22 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     } yield ()
   }
 
-  def getLastModifiedTimestamp(): Try[Option[DateTime]] = {
+  /**
+   * Returns whether the deposit is valid, also logs a warn if it is not.
+   *
+   * @return Boolean if the deposit is readable and contains the expected deposit.properties file
+   */
+  def isValidDeposit: Boolean = {
+    validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
+      .doIfFailure { case t: Throwable => logger.warn(s"[${ deposit.getFileName }] was invalid: ${ t.getMessage }") }
+      .isSuccess
+  }
+
+  def getLastModifiedTimestamp: Try[Option[DateTime]] = {
     for {
-      _ <- validateThatDepositDirectoryIsReadable()
-      _ <- validateFilesInDepositDirectoryAreReadable(depositDirPath)
-    } yield doGetLastModifiedStamp(depositDirPath)
-  }
-
-  private def doGetLastModifiedStamp(depositDirPath: Path): Option[DateTime] = {
-    managed(Files.list(depositDirPath)).acquireAndGet {
-      _.map[Long](Files.getLastModifiedTime(_).toInstant.toEpochMilli)
-        .max(LongComparator)
-        .map[DateTime](new DateTime(_, DateTimeZone.UTC))
-        .toOption
-    }
-  }
-
-  private def validateFilesInDepositDirectoryAreReadable(depositDirPath: Path): Try[Unit] = {
-    managed(Files.list(depositDirPath)).acquireAndGet {
-      _.iterator()
-        .asScala
-        .map(path => validateThatFileIsReadable(path.toRealPath()))
-        .collectFirst { case f @ Failure(_: Exception) => f }
-        .getOrElse(Success(()))
-    }
+      _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
+      _ <- validateFilesInDepositDirectoryAreReadable()
+    } yield doGetLastModifiedStamp()
   }
 
   def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean): Try[Unit] = {
@@ -159,6 +173,15 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     } yield ()
   }
 
+  private def doGetLastModifiedStamp(): Option[DateTime] = {
+    managed(Files.list(deposit)).acquireAndGet {
+      _.map[Long](Files.getLastModifiedTime(_).toInstant.toEpochMilli)
+        .max(LongComparator)
+        .map[DateTime](new DateTime(_, DateTimeZone.UTC))
+        .toOption
+    }
+  }
+
   private def deleteDepositFromDir(onlyData: Boolean): Try[Unit] = {
     val depositorId = getDepositorId
     val depositState = getStateLabel
@@ -167,13 +190,13 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
   }
 
   private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {
-    logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
-    FileUtils.deleteDirectory(depositDirPath.toFile)
+    logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
+    FileUtils.deleteDirectory(deposit.toFile)
   }
 
   private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State): Try[Unit] = Try {
-    depositDirPath.toFile.listFiles()
-      .filter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
+    deposit.toFile.listFiles()
+      .withFilter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
       .map(_.toPath)
       .foreach(path => {
         validateThatFileIsReadable(path)
@@ -182,31 +205,26 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
   }
 
   private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path): Unit = {
-    logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $depositDirPath")
+    logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
     if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
     else Files.delete(path)
   }
 
   private def shouldDeleteDepositDir(filterOnDepositor: Option[DepositorId], age: Int, state: State): Boolean = {
     val depositorId: DepositorId = getDepositorId.orNull
-    val depositState = getStateLabel
     val ageRequirementIsMet = depositAgeIsLargerThanRequiredAge(age)
 
     // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-    filterOnDepositor.forall(depositorId ==) && ageRequirementIsMet && depositState == state
+    filterOnDepositor.forall(depositorId ==) && ageRequirementIsMet && getStateLabel == state
   }
 
   private def getProperty(key: String): Option[String] = {
     depositProperties.flatMap(props => Option(props.getString(key)))
   }
 
-  private def depositPropertiesFileExists: Boolean = {
-    Files.exists(depositPropertiesFilePath)
-  }
-
   private def end: DateTime = DateTime.now(DateTimeZone.UTC)
 
-  private def depositPropertiesFilePath: Path = depositDirPath.resolve(depositPropertiesFileName)
+  private def depositPropertiesFilePath: Path = deposit.resolve(depositPropertiesFileName)
 
   private def readDepositProperties(depositDir: Path): PropertiesConfiguration = {
     new PropertiesConfiguration() {
@@ -215,33 +233,97 @@ class DepositManager(val depositDirPath: Path) extends DebugEnhancedLogging {
     }
   }
 
+  private def getDoi: Try[Option[String]] = {
+    for {
+      _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
+      _ <- validateFilesInDepositDirectoryAreReadable()
+      _ <- validateUserRightForMetadataDir()
+    } yield getDoiIdentifier.orElse(retrieveDoiFromMetadata)
+  }
+
+  private def findDoi(identifiers: NodeSeq): Option[String] = {
+    identifiers.find {
+      id =>
+        id.attribute(XML_NAMESPACE_XSI, "type").exists {
+          case Seq(n) =>
+            n.text.split(':') match {
+              case Array(pre, suffix) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE && suffix == "DOI"
+              case _ => false
+            }
+        }
+    }.map(_.text)
+  }
+
+  private def retrieveDoiFromMetadata: Option[String] = {
+    managed(Files.list(deposit)).acquireAndGet {
+      _.iterator().asScala.toStream
+        .collectFirst {
+          case bagDir if Files.isDirectory(bagDir) => bagDir.resolve(metadataDirName).resolve(dataSetFileName)
+        }
+        .flatMap {
+          case datasetXml if Files.exists(datasetXml) => Try {
+            val docElement = XML.loadFile(datasetXml.toFile)
+            findDoi(docElement \\ "dcmiMetadata" \\ "identifier")
+          }.getOrElse(None)
+          case _ => None
+        }
+    }
+  }
+
   private def findDepositProperties: Option[PropertiesConfiguration] = {
-    if (depositPropertiesFileExists) {
-      debug(s"Getting info from $depositDirPath")
-      Some(readDepositProperties(depositDirPath))
+    if (Files.exists(depositPropertiesFilePath)) {
+      debug(s"Getting info from $deposit")
+      Some(readDepositProperties(deposit))
     }
     else {
-      logger.error(s"$depositPropertiesFileName does not exist for $depositDirPath")
+      logger.error(s"$depositPropertiesFileName does not exist for $deposit")
       None
     }
   }
 
+  private def validateUserRightForMetadataDir(): Try[Unit] = {
+    managed(Files.list(deposit)).acquireAndGet {
+      _.iterator().asScala.toStream
+        .collectFirst {
+          case bagDir if Files.isDirectory(bagDir) => validateUserRightsForFile(bagDir.resolve(metadataDirName).resolve(dataSetFileName))
+        }
+    }.getOrElse(Success(()))
+  }
+
   private def validateThatDepositDirectoryIsReadable(): Try[Unit] = {
-    validateThatFileIsReadable(depositDirPath)
+    validateThatFileIsReadable(deposit)
   }
 
   private def validateThatDepositPropertiesIsReadable(): Try[Unit] = {
     validateThatFileIsReadable(depositPropertiesFilePath)
   }
 
-  private def validateUserRightsForPropertiesFile(): Try[Unit] = Try {
-    if (depositPropertiesFileExists && !Files.isReadable(depositPropertiesFilePath))
+  private def validateUserRightsForPropertiesFile(): Try[Unit] = {
+    validateUserRightsForFile(depositPropertiesFilePath)
+  }
+
+  private def validateUserRightsForDepositDir(): Try[Unit] = {
+    validateUserRightsForFile(deposit)
+  }
+
+  private def validateFilesInDepositDirectoryAreReadable(): Try[Unit] = {
+    managed(Files.list(deposit)).acquireAndGet {
+      _.iterator()
+        .asScala
+        .map(path => validateThatFileIsReadable(path.toRealPath()))
+        .collectFirst { case f @ Failure(_: Exception) => f }
+        .getOrElse(Success(()))
+    }
+  }
+
+  private def validateUserRightsForFile(file: Path): Try[Unit] = Try {
+    if (Files.exists(file) && !Files.isReadable(file))
       throw NotReadableException(depositPropertiesFilePath)
   }
 
-  private def validateUserRightsForDepositDir(): Try[Unit] = Try {
-    if (Files.exists(depositDirPath) && !Files.isReadable(depositDirPath))
-      throw NotReadableException(depositPropertiesFilePath)
+  private def validateThatFileIsReadable(path: Path): Try[Unit] = Try {
+    if (!Files.isReadable(path))
+      throw NotReadableException(path)
   }
 }
 
@@ -249,4 +331,6 @@ object DepositManager {
   val depositPropertiesFileName: String = "deposit.properties"
   val depositIdKey = "bag-store.bag-id"
   val stateLabelKey = "state.label"
+  val metadataDirName = "metadata"
+  val dataSetFileName = "dataset.xml"
 }

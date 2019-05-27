@@ -79,7 +79,7 @@ class ReportGeneratorSpec extends TestSupportFixture
   }
 
   "groupDepositsByState" should "return a map with all deposits sorted By their state and null should be mapped to UNKNOWN" in {
-    val deposits: List[Deposit] = createDeposits
+    val deposits: List[DepositInformation] = createDeposits
     val mappedByState = ReportGenerator.groupAndSortDepositsAlphabeticallyByState(deposits).toMap
     mappedByState.getOrElse(ARCHIVED, Seq()).size shouldBe 2
     mappedByState.getOrElse(DRAFT, Seq()).size shouldBe 1
@@ -170,7 +170,7 @@ class ReportGeneratorSpec extends TestSupportFixture
     forEvery(deposits)(deposit => errorReport should include(createCsvRow(deposit))) //all deposits should be added to the report
   }
 
-  private def outputErrorReportManaged(ps: PrintStream, deposits: List[Deposit]): Unit = {
+  private def outputErrorReportManaged(ps: PrintStream, deposits: List[DepositInformation]): Unit = {
     try {
       ReportGenerator.outputErrorReport(deposits)(ps)
     } finally {
@@ -180,7 +180,7 @@ class ReportGeneratorSpec extends TestSupportFixture
 
   private def toStateDetailsRegex(state: State, amount: Int, size: Double): Regex = s"$state.+$amount.+$size".r
 
-  private def createCsvRow(deposit: Deposit): String = {
+  private def createCsvRow(deposit: DepositInformation): String = {
     s"${ deposit.depositor }," +
       s"${ deposit.depositId }," +
       s"${ Option(deposit.state).getOrElse("") }," +
@@ -195,8 +195,8 @@ class ReportGeneratorSpec extends TestSupportFixture
       s"${ deposit.storageSpace.toString }"
   }
 
-  private def createDeposit(depositorId: String, state: State, source: String) = {
-    Deposit(UUID.randomUUID().toString, "10.17026/dans-12345", Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "", source)
+  private def createDeposit(depositorId: String, state: State, source: String): DepositInformation = {
+    DepositInformation(UUID.randomUUID().toString, "10.17026/dans-12345", Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "", source)
   }
 
   private def createDeposits = List(

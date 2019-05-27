@@ -23,23 +23,15 @@ import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
 import nl.knaw.dans.easy.managedeposit.State._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.apache.commons.io.FileUtils
-import org.apache.commons.lang.BooleanUtils
-import org.joda.time.{ DateTime, Duration }
-import resource.managed
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
-
 import scala.util.{ Failure, Success, Try }
-import scala.xml.{ NodeSeq, XML }
 
 class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLogging with Curation {
 
   private val sword2DepositsDir = Paths.get(configuration.properties.getString("easy-sword2"))
   private val ingestFlowInbox = Paths.get(configuration.properties.getString("easy-ingest-flow-inbox"))
-  private val metadataDirName = "metadata"
-  private val dataSetFileName = "dataset.xml"
   private val fedoraCredentials = new FedoraCredentials(
     new URL(configuration.properties.getString("fedora.url")),
     configuration.properties.getString("fedora.user"),
@@ -63,49 +55,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], source: String)(depositPaths: List[Path]): Deposits = {
     trace(filterOnDepositor)
     getDepositManagers(depositPaths)
-      .flatMap { depositManager =>
-        val deposit: Try[Option[Deposit]] = for {
-          // if the properties file does not exist continue the process with an empty properties file
-          // if the file does exist but the user cannot read it, this will return an exception
-          _ <- depositManager.validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
-          deposit <- getDeposit(filterOnDepositor, filterOnAge, depositManager, source)
-        } yield deposit
-        deposit.unsafeGetOrThrow
-      }
+      .withFilter(_.isValidDeposit)
+      .withFilter(_.hasDepositor(filterOnDepositor))
+      .withFilter(_.isOlderThan(filterOnAge))
+      .map(_.getDepositInformation(source))
+      .collect { case Success(d: DepositInformation) => d }
   }
 
   private def getDepositManagers(depositPaths: List[Path]): List[DepositManager] = {
-    depositPaths
-      .withFilter(Files.isDirectory(_))
-      .map(new DepositManager(_))
-  }
-
-  private def getDeposit(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], depositManager: DepositManager, source: String): Try[Option[Deposit]] = {
-    val depositorId = depositManager.getDepositorId.getOrElse(notAvailable)
-    lazy val lastModified: Option[DateTime] = depositManager.getLastModifiedTimestamp().unsafeGetOrThrow
-    // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
-    val hasDepositor = filterOnDepositor.forall(depositorId ==)
-    lazy val shouldReport = filterOnAge.forall(age => lastModified.forall(mod => Duration.millis(DateTime.now(mod.getZone).getMillis - mod.getMillis).getStandardDays <= age))
-
-    if (hasDepositor && shouldReport) Try {
-      Some {
-        Deposit(
-          depositId = depositManager.getDepositId.getOrElse(notAvailable),
-          doiIdentifier = getDoi(depositManager.getDoiIdentifier, depositManager.depositDirPath).getOrElse(notAvailable),
-          dansDoiRegistered = depositManager.getDansDoiRegistered.map(BooleanUtils.toBoolean),
-          fedoraIdentifier = depositManager.getFedoraIdentifier.getOrElse(notAvailable),
-          depositor = depositorId,
-          state = depositManager.getStateLabel,
-          description = depositManager.getStateDescription.getOrElse(notAvailable),
-          creationTimestamp = depositManager.getCreationTime.getOrElse(notAvailable).toString,
-          numberOfContinuedDeposits = depositManager.getNumberOfContinuedDeposits,
-          storageSpace = FileUtils.sizeOfDirectory(depositManager.depositDirPath.toFile),
-          lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse(notAvailable),
-          source = source,
-        )
-      }
-    }
-    else Success(None)
+    depositPaths.collect { case file if Files.isDirectory(file) => new DepositManager(file) }
   }
 
   def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean)(depositPaths: List[Path]): Try[Unit] = Try {
@@ -117,71 +75,6 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
             case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e)
           }
       }
-  }
-
-  private def getDoi(doiIdentifier: Option[String], depositDirPath: Path): Option[String] = {
-    if (!Files.isReadable(depositDirPath)) {
-      logErrorAndThrowNotReadableException(depositDirPath)
-    }
-    managed(Files.list(depositDirPath)).acquireAndGet {
-      files =>
-        files.forEach(file => if (!Files.isReadable(file.toRealPath())) {
-          val pathOfAZipFileOrPropFileInDepositDirPath = file.toRealPath()
-          logErrorAndThrowNotReadableException(pathOfAZipFileOrPropFileInDepositDirPath)
-        }
-        )
-    }
-
-    managed(Files.list(depositDirPath)).acquireAndGet {
-      files =>
-        files.iterator().asScala.toStream
-          .collectFirst {
-            case bagDir if Files.isDirectory(bagDir) =>
-              if (!Files.isReadable(bagDir)) {
-                logErrorAndThrowNotReadableException(bagDir)
-              }
-              if (Files.isReadable(bagDir)) {
-                val datasetXml = bagDir.resolve(metadataDirName).resolve(dataSetFileName)
-                if (Files.exists(datasetXml) && !Files.isReadable(datasetXml)) {
-                  logErrorAndThrowNotReadableException(datasetXml)
-                }
-              }
-          }
-    }
-    doiIdentifier.orElse {
-      managed(Files.list(depositDirPath)).acquireAndGet {
-        files =>
-          files.iterator().asScala.toStream
-            .collectFirst {
-              case bagDir if Files.isDirectory(bagDir) => bagDir.resolve(metadataDirName).resolve(dataSetFileName)
-            }
-            .flatMap {
-              case datasetXml if Files.exists(datasetXml) => Try {
-                val docElement = XML.loadFile(datasetXml.toFile)
-                findDoi(docElement \\ "dcmiMetadata" \\ "identifier")
-              }.getOrElse(None)
-              case _ => None
-            }
-      }
-    }
-  }
-
-  private def findDoi(identifiers: NodeSeq): Option[String] = {
-    identifiers.find {
-      id =>
-        id.attribute(XML_NAMESPACE_XSI, "type").exists {
-          case Seq(n) =>
-            n.text.split(':') match {
-              case Array(pre, suffix) => id.getNamespace(pre) == XML_NAMESPACE_ID_TYPE && suffix == "DOI"
-              case _ => false
-            }
-        }
-    }.map(_.text)
-  }
-
-  def logErrorAndThrowNotReadableException(filePath: Path): Nothing = {
-    logger.error(s"cannot read $filePath")
-    throw NotReadableException(filePath)
   }
 
   def summary(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
@@ -212,15 +105,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     } yield "Execution of clean: success "
   }
 
-  def adminCurate(easyDatasetId: DatasetId): Try[FeedBackMessage] = {
+  def syncFedoraState(easyDatasetId: DatasetId): Try[FeedBackMessage] = {
     for {
-      _ <- validateUserCanReadDepositsInIngestFlowBox()
+      _ <- validateUserCanReadAllDepositsInIngestFlowBox()
       manager <- findDepositManagerForDatasetId(easyDatasetId)
       curationMessage <- curate(manager)
     } yield curationMessage
   }
 
-  private def validateUserCanReadDepositsInIngestFlowBox(): Try[Unit] = {
+  private def validateUserCanReadAllDepositsInIngestFlowBox(): Try[Unit] = {
     val deposits = Files.newDirectoryStream(ingestFlowInbox).asScala.toList
     getDepositManagers(deposits)
       .map(_.validateUserCanReadTheDepositDirectoryAndTheDepositProperties())

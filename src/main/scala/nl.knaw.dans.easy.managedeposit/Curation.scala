@@ -29,7 +29,7 @@ trait Curation extends DebugEnhancedLogging {
   val landingPageBaseUrl: URI
 
   def curate(manager: DepositManager): Try[FeedBackMessage] = {
-    val depositId = manager.getDepositId.getOrElse(manager.depositDirPath.getFileName.toString)
+    val depositId = manager.getDepositId.getOrElse(manager.deposit.getFileName.toString)
     manager.getFedoraIdentifier
       .map(curate(manager, depositId))
       .getOrElse(Failure(new IllegalStateException(s"[${ manager.getDepositId }] no datasetId found during curation")))

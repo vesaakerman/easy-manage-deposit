@@ -33,7 +33,7 @@ object ReportGenerator {
     depositor.map(d => deposits.filter(_.depositor == d)).getOrElse(deposits)
   }
 
-  def groupAndSortDepositsAlphabeticallyByState(deposits: Deposits): Seq[(State, Seq[Deposit])] = {
+  def groupAndSortDepositsAlphabeticallyByState(deposits: Deposits): Seq[(State, Seq[DepositInformation])] = {
     val groupedByState = deposits.groupBy(deposit => Option(deposit.state).getOrElse(UNKNOWN))
     groupedByState.toSeq.sortBy { case (state, _) => state } //sort alphabetically by state
   }
@@ -42,13 +42,13 @@ object ReportGenerator {
 
   def outputErrorReport(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
     printRecords(deposits.filter {
-      case Deposit(_, _, _, _, _, INVALID, _, _, _, _, _, _) => true
-      case Deposit(_, _, _, _, _, FAILED, _, _, _, _, _, _) => true
-      case Deposit(_, _, _, _, _, REJECTED, _, _, _, _, _, _) => true
-      case Deposit(_, _, _, _, _, UNKNOWN, _, _, _, _, _, _) => true
-      case Deposit(_, _, _, _, _, null, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, INVALID, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, FAILED, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, REJECTED, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, UNKNOWN, _, _, _, _, _, _) => true
+      case DepositInformation(_, _, _, _, _, null, _, _, _, _, _, _) => true
       // When the doi of an archived deposit is NOT registered, an error should be raised
-      case d@Deposit(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _) if d.isDansDoi => true
+      case d@DepositInformation(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _) if d.isDansDoi => true
       case _ => false
     })
   }
@@ -99,7 +99,7 @@ object ReportGenerator {
     }
   }
 
-  private def printLineForDepositGroup(state: State, depositGroup: Seq[Deposit])(implicit printStream: PrintStream): Unit = {
+  private def printLineForDepositGroup(state: State, depositGroup: Seq[DepositInformation])(implicit printStream: PrintStream): Unit = {
     printStream.println(formatCountAndSize(depositGroup, state))
   }
 
@@ -115,7 +115,7 @@ object ReportGenerator {
     else formatSize(1, "B")
   }
 
-  private def formatCountAndSize(deposits: Seq[Deposit], filterOnState: State): String = {
+  private def formatCountAndSize(deposits: Seq[DepositInformation], filterOnState: State): String = {
     f"${ filterOnState.toString }%-10s : ${ deposits.size }%5d (${ formatStorageSize(deposits.map(_.storageSpace).sum) })"
   }
 }

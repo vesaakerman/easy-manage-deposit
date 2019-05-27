@@ -47,8 +47,8 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
   override def afterEach(): Unit = {
     super.afterEach()
-    addOwnerReadPermissionIfExist(depositOne / "deposit.properties")
     addOwnerReadPermissionIfExist(depositOne)
+    addOwnerReadPermissionIfExist(depositOne / "deposit.properties")
     addOwnerReadPermissionIfExist(depositOne / "bag.zip.1")
   }
 
@@ -94,7 +94,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   }
 
   it should "return a failure if the user has no access right to the deposit" in {
-    depositOne.removePermission(PosixFilePermission.OWNER_READ)
+    removeOwnerPermissions(depositOne)
     new DepositManager(depositOnePath).validateUserCanReadTheDepositDirectoryAndTheDepositProperties() should matchPattern {
       case Failure(e: NotReadableException) if e.getMessage == s"cannot read $depositOne" =>
     }
@@ -116,14 +116,14 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
   "getLastModifiedTimestamp" should "return an option from the latest modified TimeStamp" in {
     val today = DateTime.now()
-    new DepositManager(depositOnePath).getLastModifiedTimestamp() should matchPattern {
+    new DepositManager(depositOnePath).getLastModifiedTimestamp should matchPattern {
       case Success(Some(d: DateTime)) if Math.abs(d.minus(today.getMillis).getMillis) < 100000 =>
     }
   }
 
   it should "fail if the user does not have right to read the deposit directory" in {
-    depositOne.removePermission(PosixFilePermission.OWNER_READ)
-    new DepositManager(depositOnePath).getLastModifiedTimestamp() should matchPattern {
+    removeOwnerPermissions(depositOne)
+    new DepositManager(depositOnePath).getLastModifiedTimestamp should matchPattern {
       case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $depositOne" =>
     }
   }
@@ -131,13 +131,13 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "fail if a zip in the deposit is not readable" in {
     val zip = depositOne / "bag.zip.1"
     zip.removePermission(PosixFilePermission.OWNER_READ)
-    new DepositManager(depositOnePath).getLastModifiedTimestamp() should matchPattern {
+    new DepositManager(depositOnePath).getLastModifiedTimestamp should matchPattern {
       case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $zip" =>
     }
   }
 
   it should "fail if the deposit directory is not readable" in {
-    new DepositManager(nonExistingDepositPath).getLastModifiedTimestamp() should matchPattern {
+    new DepositManager(nonExistingDepositPath).getLastModifiedTimestamp should matchPattern {
       case Failure(nre: NotReadableException) if nre.getMessage == s"cannot read $nonExistingDeposit" =>
     }
   }
@@ -293,7 +293,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   }
 
   it should "return an NotReadableException if the user does not have the permission to read the dir" in {
-    depositOne.removePermission(PosixFilePermission.OWNER_READ)
+    removeOwnerPermissions(depositOne)
     new DepositManager(depositOnePath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
       case Failure(NotReadableException(`depositOnePath`, _)) =>
     }
@@ -315,6 +315,28 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     new DepositManager(depositDirWithoutPropertiesPath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
       case Failure(NotReadableException(`propertiesPath`, _)) =>
     }
+  }
+
+  "getDeposit" should "succeed" in {
+    new DepositManager(depositOnePath).getDepositInformation( "")(List("10.17026/", "10.5072/")) should matchPattern {
+      case Success(d: DepositInformation) if d.depositor == "user001" && d.state == SUBMITTED =>
+    }
+  }
+
+  it should "succeed if a directory has no dataset.xml but has a doi in it deposit.properties" in {
+    new DepositManager(depositWithoutDepositorPath).getDepositInformation( "")(List("10.17026/", "10.5072/")) should matchPattern {
+      case Success(d: DepositInformation) if d.depositor == notAvailable && d.state == SUBMITTED =>
+    }
+  }
+
+  it should "fail if the deposit.properties do not exist" in {
+    new DepositManager(depositDirWithoutPropertiesPath).getDepositInformation("")(List("10.17026/", "10.5072/")) should matchPattern {
+      case Failure(e: NotReadableException) if e.getMessage == s"cannot read $depositDirWithoutPropertiesPath/deposit.properties" =>
+    }
+  }
+
+  private def removeOwnerPermissions(file: File): Unit = {
+    file.removePermission(PosixFilePermission.OWNER_READ)
   }
 
   private def setCreationDateForTesting(daysAgo: Int): Unit = {

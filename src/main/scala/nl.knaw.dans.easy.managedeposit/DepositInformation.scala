@@ -19,20 +19,20 @@ package nl.knaw.dans.easy.managedeposit
 import nl.knaw.dans.easy.managedeposit.State.{ ARCHIVED, FAILED, State }
 import org.apache.commons.lang.BooleanUtils
 
-case class Deposit(depositId: DepositId,
-                   doiIdentifier: String,
-                   dansDoiRegistered: Option[Boolean],
-                   fedoraIdentifier: String,
-                   depositor: DepositorId,
-                   state: State,
-                   description: String,
-                   creationTimestamp: String,
-                   numberOfContinuedDeposits: Int,
-                   storageSpace: Long,
-                   lastModified: String,
-                   source: String,
-                  )
-                  (implicit dansDoiPrefixes: List[String]) {
+case class DepositInformation(depositId: DepositId,
+                              doiIdentifier: String,
+                              dansDoiRegistered: Option[Boolean],
+                              fedoraIdentifier: String,
+                              depositor: DepositorId,
+                              state: State,
+                              description: String,
+                              creationTimestamp: String,
+                              numberOfContinuedDeposits: Int,
+                              storageSpace: Long,
+                              lastModified: String,
+                              source: String,
+                             )
+                             (implicit dansDoiPrefixes: List[String]) {
 
   def isDansDoi: Boolean = {
     dansDoiPrefixes.exists(doiIdentifier.startsWith)
