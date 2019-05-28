@@ -318,14 +318,16 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   }
 
   "getDeposit" should "succeed" in {
-    new DepositManager(depositOnePath).getDepositInformation( "")(List("10.17026/", "10.5072/")) should matchPattern {
+    new DepositManager(depositOnePath).getDepositInformation("")(List("10.17026/", "10.5072/")) should matchPattern {
       case Success(d: DepositInformation) if d.depositor == "user001" && d.state == SUBMITTED =>
     }
   }
 
   it should "succeed if a directory has no dataset.xml but has a doi in it deposit.properties" in {
-    new DepositManager(depositWithoutDepositorPath).getDepositInformation( "")(List("10.17026/", "10.5072/")) should matchPattern {
-      case Success(d: DepositInformation) if d.depositor == notAvailable && d.state == SUBMITTED =>
+    new DepositManager(depositWithoutDepositorPath).getDepositInformation("")(List("10.17026/", "10.5072/")) should matchPattern {
+      case Success(d: DepositInformation) if d.depositor == notAvailable
+        && d.state == SUBMITTED
+        && d.bagDirName == notAvailable =>
     }
   }
 

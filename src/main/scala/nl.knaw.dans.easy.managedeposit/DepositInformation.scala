@@ -31,6 +31,7 @@ case class DepositInformation(depositId: DepositId,
                               storageSpace: Long,
                               lastModified: String,
                               source: String,
+                              bagDirName: String,
                              )
                              (implicit dansDoiPrefixes: List[String]) {
 

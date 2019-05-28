@@ -19,6 +19,7 @@ import java.io.{ ByteArrayOutputStream, PrintStream }
 import java.text.SimpleDateFormat
 import java.util.{ Calendar, UUID }
 
+import nl.knaw.dans.easy.managedeposit.ReportType.ReportType
 import nl.knaw.dans.easy.managedeposit.State._
 import org.joda.time.DateTime
 import org.scalamock.scalatest.MockFactory
@@ -133,7 +134,7 @@ class ReportGeneratorSpec extends TestSupportFixture
       createDeposit("dans-2", SUBMITTED, "SRC1"), //does not violate any rule
       createDeposit("dans-3", SUBMITTED, "SRC1"), //does not violate any rule
     )
-    outputErrorReportManaged(ps, deposits)
+    outputReportManged(ps, deposits, ReportType.ERROR)
     val errorReport = baos.toString
     errorReport should include(createCsvRow(errorDeposit)) // only the first deposit should be added to the report
     errorReport should not include createCsvRow(noDansDoiDeposit)
@@ -147,7 +148,7 @@ class ReportGeneratorSpec extends TestSupportFixture
       createDeposit("dans-1", SUBMITTED, "SRC1"),
       createDeposit("dans-1", SUBMITTED, "SRC1"),
     )
-    outputErrorReportManaged(ps, deposits)
+    outputReportManged(ps, deposits, ReportType.ERROR)
 
     val errorReport = baos.toString
     deposits.foreach(deposit => errorReport should not include createCsvRow(deposit)) // None of the deposits should be added to the report
@@ -164,15 +165,27 @@ class ReportGeneratorSpec extends TestSupportFixture
       createDeposit("dans-4", UNKNOWN, "SRC1"),
       createDeposit("dans-5", null, "SRC1"),
     )
-    outputErrorReportManaged(ps, deposits)
+    outputReportManged(ps, deposits, ReportType.ERROR)
 
     val errorReport = baos.toString
     forEvery(deposits)(deposit => errorReport should include(createCsvRow(deposit))) //all deposits should be added to the report
   }
 
-  private def outputErrorReportManaged(ps: PrintStream, deposits: List[DepositInformation]): Unit = {
+  "outputFullReport" should "print all deposits" in {
+    val baos = new ByteArrayOutputStream()
+    val ps: PrintStream = new PrintStream(baos, true)
+    val deposits = createDeposits
+    outputReportManged(ps, deposits, ReportType.FULL)
+    val fullReport = baos.toString
+    forEvery(deposits)(deposit => fullReport should include(createCsvRow(deposit)))
+  }
+
+  private def outputReportManged(ps: PrintStream, deposits: List[DepositInformation], reportType: ReportType): Unit = {
     try {
-      ReportGenerator.outputErrorReport(deposits)(ps)
+      reportType match {
+        case ReportType.ERROR => ReportGenerator.outputErrorReport(deposits)(ps)
+        case ReportType.FULL => ReportGenerator.outputFullReport(deposits)(ps)
+      }
     } finally {
       ps.close()
     }
@@ -183,6 +196,7 @@ class ReportGeneratorSpec extends TestSupportFixture
   private def createCsvRow(deposit: DepositInformation): String = {
     s"${ deposit.depositor }," +
       s"${ deposit.depositId }," +
+      s"${ deposit.bagDirName }," +
       s"${ Option(deposit.state).getOrElse("") }," +
       s"${ deposit.source }," +
       s"${ deposit.doiIdentifier }," +
@@ -196,7 +210,7 @@ class ReportGeneratorSpec extends TestSupportFixture
   }
 
   private def createDeposit(depositorId: String, state: State, source: String): DepositInformation = {
-    DepositInformation(UUID.randomUUID().toString, "10.17026/dans-12345", Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "", source)
+    DepositInformation(UUID.randomUUID().toString, "10.17026/dans-12345", Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "", source, "baggy")
   }
 
   private def createDeposits = List(
@@ -217,5 +231,11 @@ class ReportGeneratorSpec extends TestSupportFixture
     createDeposit("dans-1", null, "SRC1"), // mapped and added to unknown
     createDeposit("dans-1", null, "SRC1"),
   )
+}
+
+object ReportType extends Enumeration {
+  type ReportType = Value
+  val FULL: ReportType = Value("FULL")
+  val ERROR: ReportType = Value("EROOR")
 }
 

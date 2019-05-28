@@ -80,6 +80,10 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     getProperty("curation.performed").fold(false)(BooleanUtils.toBoolean)
   }
 
+  def getBagDirName: Option[String] = {
+    getProperty("bag-store.bag-name")
+  }
+
   /**
    * getStateLabel returns the state of the deposit based on its deposit.properties file
    * if the state.label entry is absent or has a unrecognised value State.UNKNOWN is returned
@@ -124,6 +128,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
       storageSpace = FileUtils.sizeOfDirectory(deposit.toFile),
       lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse(notAvailable),
       source = source,
+      getBagDirName.getOrElse(notAvailable),
     )
   }.doIfFailure { case t: Throwable => logger.error(s"[${ deposit.getFileName }] Error while getting depositInformation: ${ t.getMessage }") }
 
