@@ -29,6 +29,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     s"""
        |  $printedName report full [-a, --age <n>] [<depositor>]
        |  $printedName report summary [-a, --age <n>] [<depositor>]
+       |  $printedName report error [-a, --age <n>] [<depositor>]
        |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [<depositor>]
        |  $printedName sync-fedora-state <easy-dataset-id>
      """.stripMargin

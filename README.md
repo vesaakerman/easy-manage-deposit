@@ -8,6 +8,7 @@ SYNOPSIS
    
      easy-manage-deposit report full [-a, --age <n>] [<depositor>]
      easy-manage-deposit report summary [-a, --age <n>] [<depositor>]
+     easy-manage-deposit report error [-a, --age <n>] [<depositor>]
      easy-manage-deposit clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [<depositor>]
      easy-manage-deposit sync-fedora-state <easy-dataset-id>
      easy-manage-deposit retry [<depositor>]
