@@ -114,7 +114,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     filterOnDepositor.forall(getDepositorId.getOrElse(notAvailable) ==)
   }
 
-  def getDepositInformation(source: String)(implicit dansDoiPrefixes: List[String]): Try[DepositInformation] = Try {
+  def getDepositInformation(location: String)(implicit dansDoiPrefixes: List[String]): Try[DepositInformation] = Try {
     DepositInformation(
       depositId = getDepositId.getOrElse(notAvailable),
       doiIdentifier = getDoi.map(_.getOrElse(notAvailable)).unsafeGetOrThrow,
@@ -127,7 +127,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
       numberOfContinuedDeposits = getNumberOfContinuedDeposits,
       storageSpace = FileUtils.sizeOfDirectory(deposit.toFile),
       lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse(notAvailable),
-      source = source,
+      location = location,
       getBagDirName.getOrElse(notAvailable),
     )
   }.doIfFailure { case t: Throwable => logger.error(s"[${ deposit.getFileName }] Error while getting depositInformation: ${ t.getMessage }") }

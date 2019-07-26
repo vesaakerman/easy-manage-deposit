@@ -43,8 +43,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     .asScala.toList
     .map(prefix => prefix.asInstanceOf[String])
 
-  private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], source: String): Deposits = {
-    depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge, source))
+  private def collectDataFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], location: String): Deposits = {
+    depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge, location))
   }
 
   def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[Unit] = {
@@ -52,13 +52,13 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(deleteDepositsFromDepositsDir(filterOnDepositor, age, toBeDeletedState, onlyData))
   }
 
-  private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], source: String)(depositPaths: List[Path]): Deposits = {
+  private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], location: String)(depositPaths: List[Path]): Deposits = {
     trace(filterOnDepositor)
     getDepositManagers(depositPaths)
       .withFilter(_.isValidDeposit)
       .withFilter(_.hasDepositor(filterOnDepositor))
       .withFilter(_.isOlderThan(filterOnAge))
-      .map(_.getDepositInformation(source))
+      .map(_.getDepositInformation(location))
       .collect { case Success(d: DepositInformation) => d }
   }
 
