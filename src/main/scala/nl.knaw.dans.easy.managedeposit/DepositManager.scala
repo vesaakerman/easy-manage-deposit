@@ -68,6 +68,10 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     getProperty("depositor.userId")
   }
 
+  def getDepositSource: Option[String] = {
+    getProperty("deposit.source")
+  }
+
   def getCreationTime: Option[DateTime] = {
     getProperty("creation.timestamp").map(timeString => new DateTime(timeString))
   }
@@ -127,6 +131,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
       numberOfContinuedDeposits = getNumberOfContinuedDeposits,
       storageSpace = FileUtils.sizeOfDirectory(deposit.toFile),
       lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse(notAvailable),
+      source = getDepositSource.getOrElse(notAvailable),
       location = location,
       getBagDirName.getOrElse(notAvailable),
     )
