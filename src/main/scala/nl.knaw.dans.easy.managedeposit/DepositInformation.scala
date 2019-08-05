@@ -30,7 +30,7 @@ case class DepositInformation(depositId: DepositId,
                               numberOfContinuedDeposits: Int,
                               storageSpace: Long,
                               lastModified: String,
-                              source: String,
+                              origin: String,
                               location: String,
                               bagDirName: String,
                              )

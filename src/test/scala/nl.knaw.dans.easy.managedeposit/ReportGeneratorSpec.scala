@@ -198,7 +198,7 @@ class ReportGeneratorSpec extends TestSupportFixture
       s"${ deposit.depositId }," +
       s"${ deposit.bagDirName }," +
       s"${ Option(deposit.state).getOrElse("") }," +
-      s"${ deposit.source }," +
+      s"${ deposit.origin }," +
       s"${ deposit.location }," +
       s"${ deposit.doiIdentifier }," +
       s"${ deposit.registeredString }," +
@@ -211,7 +211,7 @@ class ReportGeneratorSpec extends TestSupportFixture
   }
 
   private def createDeposit(depositorId: String, state: State, location: String): DepositInformation = {
-    DepositInformation(UUID.randomUUID().toString, "10.17026/dans-12345", Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "", location, "SWORD2", "baggy")
+    DepositInformation(UUID.randomUUID().toString, "10.17026/dans-12345", Some(true), "FedoraId", depositorId, state, "", DateTime.now().minusDays(3).toString(), 2, 129000, "", "SWORD2", location, "baggy")
   }
 
   private def createDeposits = List(

@@ -87,7 +87,7 @@ object ReportGenerator {
         deposit.depositId,
         deposit.bagDirName,
         deposit.state,
-        deposit.source,
+        deposit.origin,
         deposit.location,
         deposit.doiIdentifier,
         deposit.registeredString,
