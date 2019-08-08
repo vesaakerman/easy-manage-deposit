@@ -75,7 +75,7 @@ object ReportGenerator {
 
   private def printRecords(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
-      .withHeader("DEPOSITOR", "DEPOSIT_ID", "BAG_NAME", "DEPOSIT_STATE", "SOURCE", "LOCATION", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
+      .withHeader("DEPOSITOR", "DEPOSIT_ID", "BAG_NAME", "DEPOSIT_STATE", "ORIGIN", "LOCATION", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
         "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION", "NBR_OF_CONTINUED_DEPOSITS", "STORAGE_IN_BYTES")
       .withDelimiter(',')
       .withRecordSeparator('\n')
