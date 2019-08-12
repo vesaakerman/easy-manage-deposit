@@ -41,11 +41,8 @@ case class DepositInformation(depositId: DepositId,
   }
 
   def registeredString: String = {
-    if (!isDansDoi && doiIdentifier.nonEmpty && !doiIdentifier.equals(notAvailable))
-      "yes"
-    else
-      dansDoiRegistered.map(BooleanUtils.toStringYesNo)
-        .getOrElse(getDoiRegisteredFromState)
+    if (!isDansDoi && doiIdentifier.nonEmpty && !doiIdentifier.equals(notAvailable)) "yes"
+    else dansDoiRegistered.fold(getDoiRegisteredFromState)(BooleanUtils.toStringYesNo)
   }
 
   /**
