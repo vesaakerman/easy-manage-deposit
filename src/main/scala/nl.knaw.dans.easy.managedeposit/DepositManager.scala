@@ -85,7 +85,17 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
   }
 
   def getBagDirName: Option[String] = {
-    getProperty("bag-store.bag-name")
+    getProperty("bag-store.bag-name").orElse(retrieveBagNameFromFilesystem)
+  }
+
+  private def retrieveBagNameFromFilesystem: Option[String] = {
+    managed(Files.list(deposit))
+      .map(_.iterator().asScala.toList)
+      .acquireAndGet {
+        case children if children.count(Files.isDirectory(_)) == 1 =>
+          children.find(Files.isDirectory(_)).map(_.getFileName.toString)
+        case _ => None
+      }
   }
 
   /**

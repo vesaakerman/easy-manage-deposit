@@ -176,6 +176,21 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     setupDepositManager.getStateLabel shouldBe UNKNOWN
   }
 
+  "getBagDirName" should "find the bag name based on deposit.properties" in {
+    val manager = new DepositManager(depositOnePath)
+    manager.getBagDirName.value shouldBe "baggy"
+  }
+  
+  it should "find the bag name based on the file system" in {
+    val manager = new DepositManager(ruimteReis01Path)
+    manager.getBagDirName.value shouldBe "bag"
+  }
+
+  it should "not be able to find the bag name" in {
+    val manager = new DepositManager(depositWithoutDepositorPath)
+    manager.getBagDirName shouldBe empty
+  }
+
   "depositAgeIsLargerThanMinimalRequiredAge" should "return true if required age is 4 days and the deposit age is 5 days " in {
     setCreationDateForTesting(daysAgo = 5)
     new DepositManager(depositOnePath).depositAgeIsLargerThanRequiredAge(4) shouldBe true
