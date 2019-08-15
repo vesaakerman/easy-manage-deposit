@@ -39,7 +39,7 @@ REPORT_ERROR=${TMPDIR}/report-error-${EASY_ACCOUNT:-all}-$DATE.csv
 REPORT_ERROR_24=${TMPDIR}/report-error-${EASY_ACCOUNT:-all}-yesterday-$DATE.csv
 
 if [[ "$FROM" == "" ]]; then
-    FROM_EMAIl=""
+    FROM_EMAIL=""
 else
     FROM_EMAIL="-r $FROM"
 fi
@@ -57,8 +57,8 @@ exit_if_failed() {
     if [[ $EXITSTATUS != 0 ]]; then
         echo "ERROR: $1, exit status = $EXITSTATUS"
         echo "Error report generation FAILED. Contact the system administrator." |
-        mail -s "FAILED: $EASY_HOST Error report: status of failed $EASY_HOST deposits (${EASY_ACCOUNT:-all depositors})" \
-             $FROM_EMAIL $BCC_EMAILS $TO
+        mail -s "$(echo -e "FAILED: $EASY_HOST Error report: status of failed $EASY_HOST deposits for ${EASY_ACCOUNT:-all depositors}\nX-Priority: 1")" \
+             $FROM_EMAIL $BCC_EMAILS "applicatiebeheer@easy.dans.knaw.nl"
         exit 1
     fi
     echo "OK"
@@ -83,7 +83,7 @@ if [[ $LINE_COUNT -gt 1 || "$SEND_ALWAYS" = true ]]; then
     mail -s "$EASY_HOST Error report: status of failed EASY deposits (${EASY_ACCOUNT:-all depositors})" \
          -a $REPORT_ERROR \
          -a $REPORT_ERROR_24 \
-         $BCC_EMAILS $FROM_EMAIL $TO
+         $BCC_EMAILS $FROM_EMAIL $TO_EMAILS
     exit_if_failed "sending of e-mail failed"
 else
     echo "No new failed deposits were found, therefore no report was sent."
