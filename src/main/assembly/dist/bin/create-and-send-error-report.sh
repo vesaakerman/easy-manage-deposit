@@ -58,7 +58,7 @@ exit_if_failed() {
         echo "ERROR: $1, exit status = $EXITSTATUS"
         echo "Error report generation FAILED. Contact the system administrator." |
         mail -s "$(echo -e "FAILED: $EASY_HOST Error report: status of failed $EASY_HOST deposits for ${EASY_ACCOUNT:-all depositors}\nX-Priority: 1")" \
-             $FROM_EMAIL $BCC_EMAILS "applicatiebeheer@easy.dans.knaw.nl"
+             $FROM_EMAIL $BCC_EMAILS "easy.applicatiebeheer@dans.knaw.nl"
         exit 1
     fi
     echo "OK"
