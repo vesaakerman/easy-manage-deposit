@@ -48,7 +48,7 @@ object ReportGenerator {
       case DepositInformation(_, _, _, _, _, UNKNOWN, _, _, _, _, _, _, _, _) => true
       case DepositInformation(_, _, _, _, _, null, _, _, _, _, _, _, _, _) => true
       // When the doi of an archived deposit is NOT registered, an error should be raised
-      case d@DepositInformation(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _, _, _) if d.isDansDoi => true
+      case d @ DepositInformation(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _, _, _) if d.isDansDoi => true
       case _ => false
     })
   }
@@ -73,7 +73,7 @@ object ReportGenerator {
     printStream.println()
   }
 
-  def outputDeleteDeposit(deposit: DeletedDepositInformation)(implicit printStream: PrintStream): Unit = printDeleteRecord(deposit)
+  def outputDeletedDeposits(deposits: DeletedDeposits)(implicit printStream: PrintStream): Unit = printDeleteRecord(deposits)
 
   private def printRecords(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
@@ -103,12 +103,15 @@ object ReportGenerator {
     }
   }
 
-  private def printDeleteRecord(deposit: DeletedDepositInformation)(implicit printStream: PrintStream): Unit = {
+  private def printDeleteRecord(deposits: DeletedDeposits)(implicit printStream: PrintStream): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
+      .withHeader("DEPOSITOR", "DEPOSIT_ID", "BAG_NAME", "DEPOSIT_STATE", "ORIGIN", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
+        "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION")
       .withDelimiter(',')
       .withRecordSeparator('\n')
 
-    for (printer <- managed(csvFormat.print(printStream)))
+    for (printer <- managed(csvFormat.print(printStream));
+         deposit <- deposits.sortBy(_.creationTimestamp)) {
       printer.printRecord(
         deposit.depositor,
         deposit.depositId,
@@ -120,6 +123,7 @@ object ReportGenerator {
         deposit.lastModified,
         deposit.description,
       )
+    }
   }
 
   private def printLineForDepositGroup(state: State, depositGroup: Seq[DepositInformation])(implicit printStream: PrintStream): Unit = {

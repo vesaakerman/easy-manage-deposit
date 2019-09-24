@@ -48,7 +48,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge, location))
   }
 
-  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[Unit] = {
+  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): DeletedDeposits = {
     val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
     depositsDir.list(deleteDepositsFromDepositsDir(filterOnDepositor, age, toBeDeletedState, onlyData, doUpdate, newStateLabel, newStateDescription, output))
   }
@@ -67,14 +67,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositPaths.collect { case file if Files.isDirectory(file) => new DepositManager(file) }
   }
 
-  def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean)(depositPaths: List[Path]): Try[Unit] = Try {
+  def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean)(depositPaths: List[Path]): DeletedDeposits =  {
     getDepositManagers(depositPaths)
-      .foreach { depositManager =>
+      .map { depositManager =>
         // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
         depositManager.deleteDepositFromDir(filterOnDepositor, age, state, onlyData, doUpdate, newStateLabel, newStateDescription, output)
           .doIfFailure {
             case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e)
           }
+          .collect { case d: DeletedDepositInformation => d }.getOrElse(null)
       }
   }
 
@@ -99,11 +100,11 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of error report."
   }
 
-  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[String] = {
-    for {
-      _ <- deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData, doUpdate, newStateLabel, newStateDescription, output)
-      _ <- deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData, doUpdate, newStateLabel, newStateDescription, output)
-    } yield "Execution of clean: success "
+  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[String] = Try {
+    val sword2DeletedDeposits =  deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData, doUpdate, newStateLabel, newStateDescription, output)
+    val ingestFlowDeletedDeposits = deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData, doUpdate, newStateLabel, newStateDescription, output)
+    ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
+    "Execution of clean: success "
   }
 
   def syncFedoraState(easyDatasetId: DatasetId): Try[FeedBackMessage] = {

@@ -199,13 +199,13 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     } yield doGetLastModifiedStamp()
   }
 
-  def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[Unit] = {
+  def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[DeletedDepositInformation] = {
     for {
       _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
       shouldDelete = shouldDeleteDepositDir(filterOnDepositor, age, state)
-      _ <- if (shouldDelete) deleteDepositFromDir(onlyData, doUpdate, newStateLabel, newStateDescription, output)
-           else Success(())
-    } yield ()
+      deleted <- if (shouldDelete) deleteDepositFromDir(onlyData, doUpdate, newStateLabel, newStateDescription, output)
+           else null
+    } yield deleted
   }
 
   private def doGetLastModifiedStamp(): Option[DateTime] = {
@@ -217,18 +217,19 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     }
   }
 
-  private def deleteDepositFromDir(onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[Unit] = {
+  private def deleteDepositFromDir(onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[DeletedDepositInformation] = {
     if (doUpdate) {
       val depositorId = getDepositorId
       val depositState = getStateLabel
       if (onlyData) deleteOnlyDataFromDeposit(depositorId, depositState, newStateLabel, newStateDescription)
       else deleteDepositDirectory(depositorId, depositState)
     }
-    Try {
-      if (output || !doUpdate)
+      if (output || !doUpdate){
         getDeletedDepositInformation()
-          .foreach(depositInfo => ReportGenerator.outputDeleteDeposit(depositInfo)(Console.out))
-    }
+
+      }
+      else null
+//          .foreach(depositInfo => ReportGenerator.outputDeleteDeposit(depositInfo)(Console.out))
   }
 
   private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {

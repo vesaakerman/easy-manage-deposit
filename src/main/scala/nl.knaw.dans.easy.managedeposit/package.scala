@@ -19,6 +19,7 @@ import java.nio.file.{ Files, Path }
 import java.util.Optional
 
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
+import org.rogach.scallop.ScallopOption
 import resource._
 
 import scala.collection.JavaConverters._
@@ -27,6 +28,7 @@ package object managedeposit {
 
   type DepositId = String
   type Deposits = Seq[DepositInformation]
+  type DeletedDeposits = Seq[DeletedDepositInformation]
   type DepositorId = String
   type Deposit = Path
   type Age = Int
