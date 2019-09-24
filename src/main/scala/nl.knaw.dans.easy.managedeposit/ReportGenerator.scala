@@ -73,6 +73,8 @@ object ReportGenerator {
     printStream.println()
   }
 
+  def outputDeleteDeposit(deposit: DeletedDepositInformation)(implicit printStream: PrintStream): Unit = printDeleteRecord(deposit)
+
   private def printRecords(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
       .withHeader("DEPOSITOR", "DEPOSIT_ID", "BAG_NAME", "DEPOSIT_STATE", "ORIGIN", "LOCATION", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
@@ -99,6 +101,25 @@ object ReportGenerator {
         deposit.storageSpace.toString,
       )
     }
+  }
+
+  private def printDeleteRecord(deposit: DeletedDepositInformation)(implicit printStream: PrintStream): Unit = {
+    val csvFormat: CSVFormat = CSVFormat.RFC4180
+      .withDelimiter(',')
+      .withRecordSeparator('\n')
+
+    for (printer <- managed(csvFormat.print(printStream)))
+      printer.printRecord(
+        deposit.depositor,
+        deposit.depositId,
+        deposit.bagDirName,
+        deposit.state,
+        deposit.origin,
+        deposit.fedoraIdentifier,
+        deposit.creationTimestamp,
+        deposit.lastModified,
+        deposit.description,
+      )
   }
 
   private def printLineForDepositGroup(state: State, depositGroup: Seq[DepositInformation])(implicit printStream: PrintStream): Unit = {

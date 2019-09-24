@@ -30,7 +30,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |  $printedName report full [-a, --age <n>] [<depositor>]
        |  $printedName report summary [-a, --age <n>] [<depositor>]
        |  $printedName report error [-a, --age <n>] [<depositor>]
-       |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [<depositor>]
+       |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [-l, --new-state-label <state>] [-n, --new-state-description <description>] [-f, --force] [-o, --output] [-u, --do-update] [<depositor>]
        |  $printedName sync-fedora-state <easy-dataset-id>
      """.stripMargin
   version(s"$printedName v${ configuration.version }")
@@ -80,7 +80,12 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     val depositor: ScallopOption[DepositorId] = trailArg("depositor", required = false)
     val dataOnly: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "If specified, the deposit.properties and the container file of the deposit are not deleted")
     val state: ScallopOption[String] = opt[String](default = Some("DRAFT"), descr = "The deposits with the specified state argument are deleted")
-    val keep: ScallopOption[Int] = opt[Int](default = Some(-1), validate = -1 <=, descr = "The deposits whose ages are strictly greater than the argument n (days) are deleted. An age argument of n=0 days corresponds to 0<=n<1. The default case is set to n=-1, so that the deposits that are younger than 1 day are not skipped in the default case.")
+    val keep: ScallopOption[Int] = opt[Int](default = Some(-1), validate = -1 <=, descr = "The deposits whose ages are greater than or equal to the argument n (days) are deleted. An age argument of n=0 days corresponds to 0<=n<1.")
+    val newStateLabel: ScallopOption[String] = opt[String](short = 'l', default = Some("INVALID"), descr = "The state label in deposit.properties after the dataset has been deleted")
+    val newStateDescription: ScallopOption[String] = opt[String](short = 'n', descr = "The state description in deposit.properties after the dataset has been deleted")
+    val force: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "The user is not asked for a confirmation")
+    val output: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "Output a list of depositIds of the deposits that were deleted")
+    val doUpdate: ScallopOption[Boolean] = opt[Boolean](short = 'u', default = Some(false), descr = "Do the actual deleting of datasets and updating of deposit.properties")
     descr("removes deposit with specified state")
     footer(SUBCOMMAND_SEPARATOR)
   }

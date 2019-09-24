@@ -19,6 +19,7 @@ import java.nio.file.Paths
 
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
+import org.rogach.scallop.ScallopOption
 
 import scala.annotation.tailrec
 import scala.io.StdIn
@@ -32,14 +33,39 @@ object Command extends App with DebugEnhancedLogging {
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
   val app = new EasyManageDepositApp(configuration)
 
-  @tailrec
-  private def cleanInteraction: Boolean = {
-    StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
-      case "y" => true
-      case "n" => false
-      case _ =>
-        println("Please enter a valid char : y or n")
-        cleanInteraction
+  private def checkCleanArguments(doUpdate: Boolean, dataOnly: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String]): Boolean = {
+    var result = true
+      if (newStateLabel.isSupplied || newStateDescription.isSupplied) {
+        if (!dataOnly) {
+          println("--newStateLabel and --newStateDescription can be given only when also --data-only is selected")
+          result = false
+        }
+        if (newStateLabel.isSupplied && !newStateDescription.isSupplied) {
+          println("When --newStateLabel is given, also --newStateDescription has to be given")
+          result = false
+        }
+        else if (!newStateLabel.isSupplied && newStateDescription.isSupplied) {
+          println("When --newStateDescription is given, also --newStateLabel has to be given")
+          result = false
+        }
+      }
+    if (!doUpdate)
+      println("--do-update was not selected, and therefore the actual deleting of data does not take place")
+    result
+  }
+
+//  @tailrec
+  private def cleanInteraction(force: Boolean): Boolean = {
+    if (force)
+      true
+    else {
+      StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
+        case "y" => true
+        case "n" => false
+        case _ =>
+          println("Please enter a valid char : y or n")
+          cleanInteraction(force)
+      }
     }
   }
 
@@ -51,11 +77,15 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (error @ commandLine.reportCmd.errorCmd) :: Nil =>
       app.createErrorReport(error.depositor.toOption, error.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
-      Console.out.println(s"Deleting ${ if(clean.dataOnly()) "data from " else "" }deposits with state ${clean.state()} for ${clean.depositor.toOption.getOrElse("all users")}")
-      if (cleanInteraction)
-        app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
+      if (checkCleanArguments(clean.doUpdate(), clean.dataOnly(), clean.newStateLabel, clean.newStateDescription)) {
+        Console.out.println(s"${ if(clean.doUpdate()) "Deleting" else "To be deleted" } ${ if(clean.dataOnly()) "data from " else "" } deposits with state ${clean.state()} for ${clean.depositor.toOption.getOrElse("all users")}")
+        if (cleanInteraction(clean.force()))
+          app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), clean.newStateLabel, clean.newStateDescription, clean.output())
+        else
+          Try { "Clean operation aborted by user" }
+      }
       else
-        Try { "Clean operation aborted by user" }
+        Try { "Clean operation aborted" }
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
       app.syncFedoraState(syncFedora.easyDatasetId())
     case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))

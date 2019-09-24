@@ -25,6 +25,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.BooleanUtils
 import org.joda.time.{ DateTime, DateTimeZone, Duration }
+import org.rogach.scallop.ScallopOption
 import resource.managed
 
 import scala.collection.JavaConverters._
@@ -147,6 +148,20 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     )
   }.doIfFailure { case t: Throwable => logger.error(s"[${ deposit.getFileName }] Error while getting depositInformation: ${ t.getMessage }") }
 
+  def getDeletedDepositInformation(): Try[DeletedDepositInformation] = Try {
+    DeletedDepositInformation(
+      depositId = getDepositId.getOrElse(notAvailable),
+      fedoraIdentifier = getFedoraIdentifier.getOrElse(notAvailable),
+      depositor = getDepositorId.getOrElse(notAvailable),
+      state = getStateLabel,
+      description = getStateDescription.getOrElse(notAvailable),
+      creationTimestamp = getCreationTime.getOrElse(notAvailable).toString,
+      lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse(notAvailable),
+      origin = getDepositOrigin.getOrElse(notAvailable),
+      getBagDirName.getOrElse(notAvailable),
+    )
+  }.doIfFailure { case t: Throwable => logger.error(s"[${ deposit.getFileName }] Error while getting deletedDepositInformation: ${ t.getMessage }") }
+
   def depositAgeIsLargerThanRequiredAge(age: Age): Boolean = { // used in delete age check
     val creationTime = getCreationTime
     if (creationTime.isEmpty) logger.warn(s"deposit: $getDepositId does not have a creation time") // a doIfEmpty method would be nice
@@ -184,11 +199,11 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     } yield doGetLastModifiedStamp()
   }
 
-  def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean): Try[Unit] = {
+  def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[Unit] = {
     for {
       _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
       shouldDelete = shouldDeleteDepositDir(filterOnDepositor, age, state)
-      _ <- if (shouldDelete) deleteDepositFromDir(onlyData)
+      _ <- if (shouldDelete) deleteDepositFromDir(onlyData, doUpdate, newStateLabel, newStateDescription, output)
            else Success(())
     } yield ()
   }
@@ -202,19 +217,26 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     }
   }
 
-  private def deleteDepositFromDir(onlyData: Boolean): Try[Unit] = {
-    val depositorId = getDepositorId
-    val depositState = getStateLabel
-    if (onlyData) deleteOnlyDataFromDeposit(depositorId, depositState)
-    else deleteDepositDirectory(depositorId, depositState)
+  private def deleteDepositFromDir(onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[Unit] = {
+    if (doUpdate) {
+      val depositorId = getDepositorId
+      val depositState = getStateLabel
+      if (onlyData) deleteOnlyDataFromDeposit(depositorId, depositState, newStateLabel, newStateDescription)
+      else deleteDepositDirectory(depositorId, depositState)
+    }
+    Try {
+      if (output || !doUpdate)
+        getDeletedDepositInformation()
+          .foreach(depositInfo => ReportGenerator.outputDeleteDeposit(depositInfo)(Console.out))
+    }
   }
 
   private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {
     logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
-    FileUtils.deleteDirectory(deposit.toFile)
+//    FileUtils.deleteDirectory(deposit.toFile)
   }
 
-  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State): Try[Unit] = Try {
+  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String]): Try[Unit] = Try {
     deposit.toFile.listFiles()
       .withFilter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
       .map(_.toPath)
@@ -222,12 +244,13 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
         validateThatFileIsReadable(path)
           .doIfSuccess(_ => doDeleteDataFromDeposit(depositorId, depositState, path)).unsafeGetOrThrow
       })
+    setState(newStateLabel, newStateDescription)
   }
 
   private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path): Unit = {
     logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
-    if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
-    else Files.delete(path)
+//    if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
+//    else Files.delete(path)
   }
 
   private def shouldDeleteDepositDir(filterOnDepositor: Option[DepositorId], age: Int, state: State): Boolean = {
@@ -236,6 +259,14 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
 
     // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
     filterOnDepositor.forall(depositorId ==) && ageRequirementIsMet && getStateLabel == state
+  }
+
+  private def setState(newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String]): Unit = {
+    newStateLabel.foreach { stateLabel =>
+      setProperty(stateLabelKey, stateLabel)
+      setProperty(stateDescription, newStateDescription.getOrElse(""))
+      saveProperties()
+    }
   }
 
   private def getProperty(key: String): Option[String] = {
@@ -351,6 +382,7 @@ object DepositManager {
   val depositPropertiesFileName: String = "deposit.properties"
   val depositIdKey = "bag-store.bag-id"
   val stateLabelKey = "state.label"
+  val stateDescription = "state.description"
   val metadataDirName = "metadata"
   val dataSetFileName = "dataset.xml"
 }
