@@ -19,7 +19,6 @@ import java.nio.file.{ Files, Path }
 import java.util.Optional
 
 import org.joda.time.format.{ DateTimeFormatter, ISODateTimeFormat }
-import org.rogach.scallop.ScallopOption
 import resource._
 
 import scala.collection.JavaConverters._
@@ -42,7 +41,7 @@ package object managedeposit {
   case class NotReadableException(path: Path, cause: Throwable = null)
     extends Exception(s"""cannot read $path""", cause)
 
-  case class DeleteParameters(filterOnDepositor: Option[DepositorId], age: Int, state: State.State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean)
+  case class DeleteParameters(filterOnDepositor: Option[DepositorId], age: Int, state: State.State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: String = "", newStateDescription: String = "", output: Boolean = false)
 
   implicit class PathExtensions(val path: Path) extends AnyVal {
     def list[T](f: List[Path] => T): T = {

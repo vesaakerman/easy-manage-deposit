@@ -233,7 +233,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     FileUtils.deleteDirectory(deposit.toFile)
   }
 
-  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String]): Try[Unit] = Try {
+  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State, newStateLabel: String, newStateDescription: String): Try[Unit] = Try {
     deposit.toFile.listFiles()
       .withFilter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
       .map(_.toPath)
@@ -258,10 +258,10 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     filterOnDepositor.forall(depositorId ==) && ageRequirementIsMet && getStateLabel == state
   }
 
-  private def setState(newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String]): Unit = {
-    newStateLabel.foreach { stateLabel =>
-      setProperty(stateLabelKey, stateLabel)
-      setProperty(stateDescription, newStateDescription.getOrElse(""))
+  private def setState(newStateLabel: String, newStateDescription: String): Unit = {
+    if (newStateLabel.nonEmpty) {
+      setProperty(stateLabelKey, newStateLabel)
+      setProperty(stateDescription, newStateDescription)
       saveProperties()
     }
   }
