@@ -362,6 +362,24 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     }
   }
 
+  it should "change state and state description in deposit.properties when newStateLabel and newStateDesciption are given" in {
+    ruimteReis01 should exist
+    val depositManager = new DepositManager(ruimteReis01Path)
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = true, newStateLabel = "INVALID", newStateDescription = "abandoned draft, data removed")
+    depositManager.deleteDepositFromDir(deleteParameters) shouldBe a[Success[_]]
+    depositManager.getStateLabel shouldBe INVALID
+    depositManager.getStateDescription shouldBe Some("abandoned draft, data removed")
+  }
+
+  it should "not change state and state description in deposit.properties when newStateLabel and newStateDesciption are given, but doUpdate = false" in {
+    ruimteReis01 should exist
+    val depositManager = new DepositManager(ruimteReis01Path)
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = false, newStateLabel = "INVALID", newStateDescription = "abandoned draft, data removed")
+    depositManager.deleteDepositFromDir(deleteParameters) shouldBe a[Success[_]]
+    depositManager.getStateLabel shouldBe SUBMITTED
+    depositManager.getStateDescription shouldBe Some("Deposit is valid and ready for post-submission processing")
+  }
+
   "getDeposit" should "succeed" in {
     new DepositManager(depositOnePath).getDepositInformation("")(List("10.17026/", "10.5072/")) should matchPattern {
       case Success(d: DepositInformation) if d.depositor == "user001" && d.state == SUBMITTED =>
