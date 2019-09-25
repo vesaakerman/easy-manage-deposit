@@ -22,7 +22,6 @@ import nl.knaw.dans.easy.managedeposit.State._
 import org.joda.time.{ DateTime, DateTimeZone }
 import org.scalatest.BeforeAndAfterEach
 
-import scala.language.{ postfixOps, reflectiveCalls }
 import scala.util.{ Failure, Success }
 
 class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
@@ -232,6 +231,14 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     ruimteReis01 shouldNot exist
   }
 
+  it should "not delete the deposit directory from a deposit directory if all conditions are met and onlyData = false, but doUpdate = false" in {
+    ruimteReis01 should exist
+    val depositManager = new DepositManager(ruimteReis01Path)
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = false)
+    depositManager.deleteDepositFromDir(deleteParameters) shouldBe a[Success[_]]
+    ruimteReis01 should exist
+  }
+
   it should "keep the directory and the properties file if the conditions are met and onlyData = true" in {
     ruimteReis01 should exist
     val depositManager = new DepositManager(ruimteReis01Path)
@@ -272,6 +279,12 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val deleteParameters = DeleteParameters(None, age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
     new DepositManager(ruimteReis01Path).deleteDepositFromDir(deleteParameters) shouldBe a[Success[_]]
     ruimteReis01 shouldNot exist
+  }
+
+  it should "not delete the directory if no depositor id is given and other conditions match, but doUpdate = false" in {
+    val deleteParameters = DeleteParameters(None, age = 1, state = SUBMITTED, onlyData = false, doUpdate = false)
+    new DepositManager(ruimteReis01Path).deleteDepositFromDir(deleteParameters) shouldBe a[Success[_]]
+    ruimteReis01 should exist
   }
 
   it should "not delete the directory if no depositor id is given but the state does not match" in {

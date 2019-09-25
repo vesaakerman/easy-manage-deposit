@@ -54,7 +54,7 @@ object Command extends App with DebugEnhancedLogging {
     result
   }
 
-//  @tailrec
+  @tailrec
   private def cleanInteraction(force: Boolean): Boolean = {
     if (force)
       true
