@@ -148,7 +148,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     )
   }.doIfFailure { case t: Throwable => logger.error(s"[${ deposit.getFileName }] Error while getting depositInformation: ${ t.getMessage }") }
 
-  def getDeletedDepositInformation(): Try[DeletedDepositInformation] = Try {
+  def getDeleteDepositInformation(): Try[DeletedDepositInformation] = Try {
     DeletedDepositInformation(
       depositId = getDepositId.getOrElse(notAvailable),
       fedoraIdentifier = getFedoraIdentifier.getOrElse(notAvailable),
@@ -199,12 +199,12 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     } yield doGetLastModifiedStamp()
   }
 
-  def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[DeletedDepositInformation] = {
+  def deleteDepositFromDir(deleteParams: DeleteParameters): Try[DeletedDepositInformation] = {
     for {
       _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
-      shouldDelete = shouldDeleteDepositDir(filterOnDepositor, age, state)
-      deleted <- if (shouldDelete) deleteDepositFromDir(onlyData, doUpdate, newStateLabel, newStateDescription, output)
-           else null
+      shouldDelete = shouldDeleteDepositDir(deleteParams.filterOnDepositor, deleteParams.age, deleteParams.state)
+      deleted <- if (shouldDelete) deleteDepositFromDirectory(deleteParams)
+                 else Success(null)
     } yield deleted
   }
 
@@ -217,24 +217,20 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     }
   }
 
-  private def deleteDepositFromDir(onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[DeletedDepositInformation] = {
-    if (doUpdate) {
+  private def deleteDepositFromDirectory(deleteParams: DeleteParameters): Try[DeletedDepositInformation] = {
+    val depositInfo = getDeleteDepositInformation()
+    if (deleteParams.doUpdate) {
       val depositorId = getDepositorId
       val depositState = getStateLabel
-      if (onlyData) deleteOnlyDataFromDeposit(depositorId, depositState, newStateLabel, newStateDescription)
+      if (deleteParams.onlyData) deleteOnlyDataFromDeposit(depositorId, depositState, deleteParams.newStateLabel, deleteParams.newStateDescription)
       else deleteDepositDirectory(depositorId, depositState)
     }
-      if (output || !doUpdate){
-        getDeletedDepositInformation()
-
-      }
-      else null
-//          .foreach(depositInfo => ReportGenerator.outputDeleteDeposit(depositInfo)(Console.out))
+    depositInfo
   }
 
   private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {
     logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
-//    FileUtils.deleteDirectory(deposit.toFile)
+    FileUtils.deleteDirectory(deposit.toFile)
   }
 
   private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String]): Try[Unit] = Try {
@@ -250,8 +246,8 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
 
   private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path): Unit = {
     logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
-//    if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
-//    else Files.delete(path)
+    if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
+    else Files.delete(path)
   }
 
   private def shouldDeleteDepositDir(filterOnDepositor: Option[DepositorId], age: Int, state: State): Boolean = {

@@ -78,7 +78,7 @@ object Command extends App with DebugEnhancedLogging {
       app.createErrorReport(error.depositor.toOption, error.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
       if (checkCleanArguments(clean.doUpdate(), clean.dataOnly(), clean.newStateLabel, clean.newStateDescription)) {
-        Console.out.println(s"${ if(clean.doUpdate()) "Deleting" else "To be deleted" } ${ if(clean.dataOnly()) "data from " else "" } deposits with state ${clean.state()} for ${clean.depositor.toOption.getOrElse("all users")}")
+        Console.out.println(s"${ if(clean.doUpdate()) "Deleting" else "To be deleted" } ${ if(clean.dataOnly()) "data from " else "" }deposits with state ${clean.state()}${ if(clean.newStateLabel.isSupplied) ", replacing with state "  else ""}${clean.newStateLabel.getOrElse("")} for ${clean.depositor.toOption.getOrElse("all users")}")
         if (cleanInteraction(clean.force()))
           app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), clean.newStateLabel, clean.newStateDescription, clean.output())
         else

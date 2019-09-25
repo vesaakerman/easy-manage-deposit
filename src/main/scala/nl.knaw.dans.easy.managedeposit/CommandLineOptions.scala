@@ -81,7 +81,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     val dataOnly: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "If specified, the deposit.properties and the container file of the deposit are not deleted")
     val state: ScallopOption[String] = opt[String](default = Some("DRAFT"), descr = "The deposits with the specified state argument are deleted")
     val keep: ScallopOption[Int] = opt[Int](default = Some(-1), validate = -1 <=, descr = "The deposits whose ages are greater than or equal to the argument n (days) are deleted. An age argument of n=0 days corresponds to 0<=n<1.")
-    val newStateLabel: ScallopOption[String] = opt[String](short = 'l', default = Some("INVALID"), descr = "The state label in deposit.properties after the dataset has been deleted")
+    val newStateLabel: ScallopOption[String] = opt[String](short = 'l', descr = "The state label in deposit.properties after the dataset has been deleted")
     val newStateDescription: ScallopOption[String] = opt[String](short = 'n', descr = "The state description in deposit.properties after the dataset has been deleted")
     val force: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "The user is not asked for a confirmation")
     val output: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "Output a list of depositIds of the deposits that were deleted")

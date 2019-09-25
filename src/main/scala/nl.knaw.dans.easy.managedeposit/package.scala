@@ -42,6 +42,8 @@ package object managedeposit {
   case class NotReadableException(path: Path, cause: Throwable = null)
     extends Exception(s"""cannot read $path""", cause)
 
+  case class DeleteParameters(filterOnDepositor: Option[DepositorId], age: Int, state: State.State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean)
+
   implicit class PathExtensions(val path: Path) extends AnyVal {
     def list[T](f: List[Path] => T): T = {
       managed(Files.list(path)).acquireAndGet(stream => f(stream.iterator().asScala.toList))

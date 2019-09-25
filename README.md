@@ -69,7 +69,6 @@ ARGUMENTS
                                                  been deleted
             -l, --new-state-label  <arg>         The state label in deposit.properties
                                                  after the dataset has been deleted
-                                                 (default = INVALID)
             -o, --output                         Output a list of depositIds of the
                                                  deposits that were deleted
             -s, --state  <arg>                   The deposits with the specified state

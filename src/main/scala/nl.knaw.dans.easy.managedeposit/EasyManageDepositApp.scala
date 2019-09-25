@@ -20,7 +20,6 @@ import java.nio.file.{ Files, Path, Paths }
 
 import com.yourmediashelf.fedora.client.{ FedoraClient, FedoraCredentials }
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
-import nl.knaw.dans.easy.managedeposit.State._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.rogach.scallop.ScallopOption
@@ -48,9 +47,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge, location))
   }
 
-  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): DeletedDeposits = {
-    val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
-    depositsDir.list(deleteDepositsFromDepositsDir(filterOnDepositor, age, toBeDeletedState, onlyData, doUpdate, newStateLabel, newStateDescription, output))
+  def deleteDepositFromDepositsDir(depositsDir: Path, deleteParams: DeleteParameters): DeletedDeposits = {
+    depositsDir.list(deleteDepositsFromDepositsDir(deleteParams)).filter(d => d.nonEmpty).map(d => d.get)
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], location: String)(depositPaths: List[Path]): Deposits = {
@@ -67,15 +65,16 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositPaths.collect { case file if Files.isDirectory(file) => new DepositManager(file) }
   }
 
-  def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean)(depositPaths: List[Path]): DeletedDeposits =  {
+  def deleteDepositsFromDepositsDir(deleteParams: DeleteParameters)(depositPaths: List[Path]): List[Option[DeletedDepositInformation]] = {
     getDepositManagers(depositPaths)
       .map { depositManager =>
         // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
-        depositManager.deleteDepositFromDir(filterOnDepositor, age, state, onlyData, doUpdate, newStateLabel, newStateDescription, output)
+        depositManager.deleteDepositFromDir(deleteParams)
           .doIfFailure {
             case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e)
           }
-          .collect { case d: DeletedDepositInformation => d }.getOrElse(null)
+          .collect { case d: DeletedDepositInformation => d }
+          .toOption
       }
   }
 
@@ -101,9 +100,13 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[String] = Try {
-    val sword2DeletedDeposits =  deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData, doUpdate, newStateLabel, newStateDescription, output)
-    val ingestFlowDeletedDeposits = deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData, doUpdate, newStateLabel, newStateDescription, output)
-    ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
+    val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
+    newStateLabel.foreach { stateLabel => State.toState(stateLabel).getOrElse(throw new IllegalArgumentException(s"state: $stateLabel is an unrecognized state")) }
+    val deleteParams = DeleteParameters(depositor, age, toBeDeletedState, onlyData, doUpdate, newStateLabel, newStateDescription, output)
+    val sword2DeletedDeposits = deleteDepositFromDepositsDir(sword2DepositsDir, deleteParams)
+    val ingestFlowDeletedDeposits = deleteDepositFromDepositsDir(ingestFlowInbox, deleteParams)
+    if (output || !doUpdate)
+      ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
     "Execution of clean: success "
   }
 
