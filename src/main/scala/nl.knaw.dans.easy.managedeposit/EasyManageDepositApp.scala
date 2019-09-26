@@ -47,8 +47,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge, location))
   }
 
-  def deleteDepositFromDepositsDir(depositsDir: Path, deleteParams: DeleteParameters): DeletedDeposits = {
-    depositsDir.list(deleteDepositsFromDepositsDir(deleteParams)).filter(d => d.nonEmpty).map(d => d.get)
+  def deleteDepositsFromDepositsDir(depositsDir: Path, deleteParams: DeleteParameters): DeletedDeposits = {
+    depositsDir.list(deleteDepositFromDepositsDir(deleteParams)).filter(d => d.nonEmpty).map(d => d.get)
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], location: String)(depositPaths: List[Path]): Deposits = {
@@ -65,7 +65,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositPaths.collect { case file if Files.isDirectory(file) => new DepositManager(file) }
   }
 
-  def deleteDepositsFromDepositsDir(deleteParams: DeleteParameters)(depositPaths: List[Path]): List[Option[DeletedDepositInformation]] = {
+  def deleteDepositFromDepositsDir(deleteParams: DeleteParameters)(depositPaths: List[Path]): List[Option[DeletedDepositInformation]] = {
     getDepositManagers(depositPaths)
       .map { depositManager =>
         // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
@@ -103,8 +103,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
     newStateLabel.foreach { stateLabel => State.toState(stateLabel).getOrElse(throw new IllegalArgumentException(s"state: $stateLabel is an unrecognized state")) }
     val deleteParams = DeleteParameters(depositor, age, toBeDeletedState, onlyData, doUpdate, newStateLabel.getOrElse(""), newStateDescription.getOrElse(""), output)
-    val sword2DeletedDeposits = deleteDepositFromDepositsDir(sword2DepositsDir, deleteParams)
-    val ingestFlowDeletedDeposits = deleteDepositFromDepositsDir(ingestFlowInbox, deleteParams)
+    val sword2DeletedDeposits = deleteDepositsFromDepositsDir(sword2DepositsDir, deleteParams)
+    val ingestFlowDeletedDeposits = deleteDepositsFromDepositsDir(ingestFlowInbox, deleteParams)
     if (output || !doUpdate)
       ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
     "Execution of clean: success "
