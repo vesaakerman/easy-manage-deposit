@@ -48,7 +48,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def deleteDepositsFromDepositsDir(depositsDir: Path, deleteParams: DeleteParameters): DeletedDeposits = {
-    depositsDir.list(deleteDepositFromDepositsDir(deleteParams)).filter(d => d.nonEmpty).map(d => d.get)
+    depositsDir.list(deleteDepositsFromDepositsDir(deleteParams)).filter(d => d.nonEmpty).map(d => d.get)
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], location: String)(depositPaths: List[Path]): Deposits = {
@@ -65,7 +65,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositPaths.collect { case file if Files.isDirectory(file) => new DepositManager(file) }
   }
 
-  def deleteDepositFromDepositsDir(deleteParams: DeleteParameters)(depositPaths: List[Path]): List[Option[DeletedDepositInformation]] = {
+  def deleteDepositsFromDepositsDir(deleteParams: DeleteParameters)(depositPaths: List[Path]): List[Option[DeletedDepositInformation]] = {
     getDepositManagers(depositPaths)
       .map { depositManager =>
         // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
