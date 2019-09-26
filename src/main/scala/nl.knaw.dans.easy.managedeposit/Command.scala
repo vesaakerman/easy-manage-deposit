@@ -77,15 +77,11 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (error @ commandLine.reportCmd.errorCmd) :: Nil =>
       app.createErrorReport(error.depositor.toOption, error.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
-      if (checkCleanArguments(clean.doUpdate(), clean.dataOnly(), clean.newStateLabel, clean.newStateDescription)) {
-        Console.out.println(s"${ if(clean.doUpdate()) "Deleting" else "To be deleted" } ${ if(clean.dataOnly()) "data from " else "" }deposits with state ${clean.state()}${ if(clean.newStateLabel.isSupplied) ", replacing with state "  else ""}${clean.newStateLabel.getOrElse("")} for ${clean.depositor.toOption.getOrElse("all users")}")
-        if (cleanInteraction(clean.force()))
-          app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), clean.newStateLabel, clean.newStateDescription, clean.output())
-        else
-          Try { "Clean operation aborted by user" }
-      }
+      Console.out.println(s"${ if(clean.doUpdate()) "Deleting" else "To be deleted" } ${ if(clean.dataOnly()) "data from " else "" }deposits with state ${clean.state()}${ if(clean.newStateLabel.isSupplied) ", replacing with state "  else ""}${clean.newStateLabel.getOrElse("")} for ${clean.depositor.toOption.getOrElse("all users")}")
+      if (cleanInteraction(clean.force()))
+        app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), clean.newStateLabel, clean.newStateDescription, clean.output())
       else
-        Try { "Clean operation aborted" }
+        Try { "Clean operation aborted by user" }
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
       app.syncFedoraState(syncFedora.easyDatasetId())
     case _ => Failure(new IllegalArgumentException("Enter a valid subcommand"))
