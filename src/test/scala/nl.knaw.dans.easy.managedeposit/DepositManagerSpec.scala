@@ -383,7 +383,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "return correct DeletedDepositInformation" in {
     ruimteReis01 should exist
     val depositManager = new DepositManager(ruimteReis01Path)
-    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = false)
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
     val result = depositManager.deleteDepositFromDir(deleteParameters).toOption.getOrElse("").toString
     result shouldBe "DeletedDepositInformation(aba410b6-1a55-40b2-9ebe-6122aad00285,n/a,user001,SUBMITTED,Deposit is valid and ready for post-submission processing,2018-11-08,2019-09-26,n/a,bag)"
   }
