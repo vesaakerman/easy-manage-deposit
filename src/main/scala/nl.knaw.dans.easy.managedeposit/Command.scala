@@ -55,17 +55,13 @@ object Command extends App with DebugEnhancedLogging {
   }
 
   @tailrec
-  private def cleanInteraction(force: Boolean): Boolean = {
-    if (force)
-      true
-    else {
-      StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
-        case "y" => true
-        case "n" => false
-        case _ =>
-          println("Please enter a valid char : y or n")
-          cleanInteraction(force)
-      }
+  private def cleanInteraction(): Boolean = {
+    StdIn.readLine("This action will delete data from the deposit area. OK? (y/n): ") match {
+      case "y" => true
+      case "n" => false
+      case _ =>
+        println("Please enter a valid char : y or n")
+        cleanInteraction()
     }
   }
 
@@ -78,7 +74,7 @@ object Command extends App with DebugEnhancedLogging {
       app.createErrorReport(error.depositor.toOption, error.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
       Console.out.println(s"${ if(clean.doUpdate()) "Deleting" else "To be deleted" } ${ if(clean.dataOnly()) "data from " else "" }deposits with state ${clean.state()}${ if(clean.newStateLabel.isSupplied) ", replacing with state "  else ""}${clean.newStateLabel.getOrElse("")} for ${clean.depositor.toOption.getOrElse("all users")}")
-      if (cleanInteraction(clean.force()))
+      if (clean.force() || cleanInteraction())
         app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), clean.newStateLabel, clean.newStateDescription, clean.output())
       else
         Try { "Clean operation aborted by user" }
