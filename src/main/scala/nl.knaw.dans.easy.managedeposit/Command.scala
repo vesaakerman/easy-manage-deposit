@@ -33,27 +33,6 @@ object Command extends App with DebugEnhancedLogging {
   val commandLine: CommandLineOptions = new CommandLineOptions(args, configuration)
   val app = new EasyManageDepositApp(configuration)
 
-  private def checkCleanArguments(doUpdate: Boolean, dataOnly: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String]): Boolean = {
-    var result = true
-      if (newStateLabel.isSupplied || newStateDescription.isSupplied) {
-        if (!dataOnly) {
-          println("--newStateLabel and --newStateDescription can be given only when also --data-only is selected")
-          result = false
-        }
-        if (newStateLabel.isSupplied && !newStateDescription.isSupplied) {
-          println("When --newStateLabel is given, also --newStateDescription has to be given")
-          result = false
-        }
-        else if (!newStateLabel.isSupplied && newStateDescription.isSupplied) {
-          println("When --newStateDescription is given, also --newStateLabel has to be given")
-          result = false
-        }
-      }
-    if (!doUpdate)
-      println("--do-update was not selected, and therefore the actual deleting of data does not take place")
-    result
-  }
-
   @tailrec
   private def cleanInteraction(): Boolean = {
     StdIn.readLine("This action will delete data from the deposit area. OK? (y/n): ") match {
