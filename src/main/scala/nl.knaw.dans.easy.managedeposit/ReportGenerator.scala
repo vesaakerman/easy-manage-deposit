@@ -111,7 +111,7 @@ object ReportGenerator {
       .withRecordSeparator('\n')
 
     for (printer <- managed(csvFormat.print(printStream));
-         deposit <- deposits.sortBy(_.creationTimestamp)) {
+         deposit <- deposits.sortBy(_.creationDate)) {
       printer.printRecord(
         deposit.depositor,
         deposit.depositId,
@@ -119,8 +119,8 @@ object ReportGenerator {
         deposit.state,
         deposit.origin,
         deposit.fedoraIdentifier,
-        deposit.creationTimestamp,
-        deposit.lastModified,
+        deposit.creationDate,
+        deposit.lastModifiedDate,
         deposit.description,
       )
     }

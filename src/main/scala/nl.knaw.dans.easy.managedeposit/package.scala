@@ -36,6 +36,7 @@ package object managedeposit {
   val XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance"
   val XML_NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
   val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
+  val dateFormatter: DateTimeFormatter = ISODateTimeFormat.date()
   val notAvailable = "n/a"
 
   case class NotReadableException(path: Path, cause: Throwable = null)

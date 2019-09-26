@@ -24,8 +24,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.BooleanUtils
-import org.joda.time.{ DateTime, DateTimeZone, Duration }
-import org.rogach.scallop.ScallopOption
+import org.joda.time.{ DateTime, DateTimeZone, Duration, LocalDate }
 import resource.managed
 
 import scala.collection.JavaConverters._
@@ -75,6 +74,10 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
 
   def getCreationTime: Option[DateTime] = {
     getProperty("creation.timestamp").map(timeString => new DateTime(timeString))
+  }
+
+  def getCreationDate: Option[LocalDate] = {
+    getProperty("creation.timestamp").map(timeString => new DateTime(timeString).toLocalDate)
   }
 
   def isCurationRequired: Boolean = {
@@ -155,8 +158,8 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
       depositor = getDepositorId.getOrElse(notAvailable),
       state = getStateLabel,
       description = getStateDescription.getOrElse(notAvailable),
-      creationTimestamp = getCreationTime.getOrElse(notAvailable).toString,
-      lastModified = lastModified.map(_.toString(dateTimeFormatter)).getOrElse(notAvailable),
+      creationDate = getCreationDate.getOrElse(notAvailable).toString,
+      lastModifiedDate = lastModified.map(_.toString(dateFormatter)).getOrElse(notAvailable),
       origin = getDepositOrigin.getOrElse(notAvailable),
       getBagDirName.getOrElse(notAvailable),
     )
