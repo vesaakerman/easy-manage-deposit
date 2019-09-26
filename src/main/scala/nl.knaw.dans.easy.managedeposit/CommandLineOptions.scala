@@ -30,7 +30,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
        |  $printedName report full [-a, --age <n>] [<depositor>]
        |  $printedName report summary [-a, --age <n>] [<depositor>]
        |  $printedName report error [-a, --age <n>] [<depositor>]
-       |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [-l, --new-state-label <state>] [-n, --new-state-description <description>] [-f, --force] [-o, --output] [-u, --do-update] [<depositor>]
+       |  $printedName clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [-l, --new-state-label <state>] [-n, --new-state-description <description>] [-f, --force] [-o, --output] [--do-update] [<depositor>]
        |  $printedName sync-fedora-state <easy-dataset-id>
      """.stripMargin
   version(s"$printedName v${ configuration.version }")
@@ -85,7 +85,7 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     val newStateDescription: ScallopOption[String] = opt[String](short = 'n', descr = "The state description in deposit.properties after the dataset has been deleted")
     val force: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "The user is not asked for a confirmation")
     val output: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "Output a list of depositIds of the deposits that were deleted")
-    val doUpdate: ScallopOption[Boolean] = opt[Boolean](short = 'u', default = Some(false), descr = "Do the actual deleting of datasets and updating of deposit.properties")
+    val doUpdate: ScallopOption[Boolean] = opt[Boolean](noshort = true, default = Some(false), descr = "Do the actual deleting of datasets and updating of deposit.properties")
     dependsOnAll(newStateLabel, List(dataOnly, newStateDescription))
     dependsOnAll(newStateDescription, List(dataOnly, newStateLabel))
     descr("removes deposit with specified state")

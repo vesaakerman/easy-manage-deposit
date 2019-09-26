@@ -9,7 +9,7 @@ SYNOPSIS
     easy-manage-deposit report full [-a, --age <n>] [<depositor>]
     easy-manage-deposit report summary [-a, --age <n>] [<depositor>]
     easy-manage-deposit report error [-a, --age <n>] [<depositor>]
-    easy-manage-deposit clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [-l, --new-state-label <state>] [-n, --new-state-description <description>] [-f, --force] [-o, --output] [-u, --do-update] [<depositor>]
+    easy-manage-deposit clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [-l, --new-state-label <state>] [-n, --new-state-description <description>] [-f, --force] [-o, --output] [--do-update] [<depositor>]
     easy-manage-deposit sync-fedora-state <easy-dataset-id>
 
      
@@ -57,7 +57,7 @@ ARGUMENTS
             -d, --data-only                      If specified, the deposit.properties and
                                                  the container file of the deposit are not
                                                  deleted
-            -u, --do-update                      Do the actual deleting of datasets and
+                --do-update                      Do the actual deleting of datasets and
                                                  updating of deposit.properties
             -f, --force                          The user is not asked for a confirmation
             -k, --keep  <arg>                    The deposits whose ages are greater than
