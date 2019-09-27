@@ -99,9 +99,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of error report."
   }
 
-  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: ScallopOption[String], newStateDescription: ScallopOption[String], output: Boolean): Try[String] = Try {
+  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: Option[String], newStateDescription: Option[String], output: Boolean): Try[String] = Try {
     val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
-    newStateLabel.foreach { stateLabel => State.toState(stateLabel).getOrElse(throw new IllegalArgumentException(s"state: $stateLabel is an unrecognized state")) }
     val deleteParams = DeleteParameters(depositor, age, toBeDeletedState, onlyData, doUpdate, newStateLabel.getOrElse(""), newStateDescription.getOrElse(""), output)
     val sword2DeletedDeposits = deleteDepositsFromDepositsDir(sword2DepositsDir, deleteParams)
     val ingestFlowDeletedDeposits = deleteDepositsFromDepositsDir(ingestFlowInbox, deleteParams)

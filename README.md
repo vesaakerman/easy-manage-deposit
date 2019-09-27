@@ -57,7 +57,7 @@ ARGUMENTS
             -d, --data-only                      If specified, the deposit.properties and
                                                  the container file of the deposit are not
                                                  deleted
-                --do-update                      Do the actual deleting of datasets and
+                --do-update                      Do the actual deleting of deposits and
                                                  updating of deposit.properties
             -f, --force                          The user is not asked for a confirmation
             -k, --keep  <arg>                    The deposits whose ages are greater than
@@ -65,10 +65,10 @@ ARGUMENTS
                                                  deleted. An age argument of n=0 days
                                                  corresponds to 0<=n<1. (default = -1)
             -n, --new-state-description  <arg>   The state description in
-                                                 deposit.properties after the dataset has
+                                                 deposit.properties after the deposit has
                                                  been deleted
             -l, --new-state-label  <arg>         The state label in deposit.properties
-                                                 after the dataset has been deleted
+                                                 after the deposit has been deleted
             -o, --output                         Output a list of depositIds of the
                                                  deposits that were deleted
             -s, --state  <arg>                   The deposits with the specified state

@@ -52,9 +52,13 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (error @ commandLine.reportCmd.errorCmd) :: Nil =>
       app.createErrorReport(error.depositor.toOption, error.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
-      Console.out.println(s"${ if(clean.doUpdate()) "Deleting" else "To be deleted" } ${ if(clean.dataOnly()) "data from " else "" }deposits with state ${clean.state()}${ if(clean.newStateLabel.isSupplied) ", replacing with state "  else ""}${clean.newStateLabel.getOrElse("")} for ${clean.depositor.toOption.getOrElse("all users")}")
+      val deleting = if(clean.doUpdate()) "Deleting" else "To be deleted"
+      val dataFrom = if(clean.dataOnly()) "data from " else ""
+      val replacingWithState = if(clean.newStateLabel.isSupplied) s", replacing with state ${clean.newStateLabel.apply()}"  else ""
+      val depositor = clean.depositor.toOption.getOrElse("all users")
+      Console.out.println(s"$deleting ${dataFrom}deposits with state ${clean.state()}$replacingWithState for $depositor")
       if (clean.force() || cleanInteraction())
-        app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), clean.newStateLabel, clean.newStateDescription, clean.output())
+        app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), clean.newStateLabel.toOption, clean.newStateDescription.toOption, clean.output())
       else
         Try { "Clean operation aborted by user" }
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
