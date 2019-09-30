@@ -86,6 +86,8 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     val force: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "The user is not asked for a confirmation")
     val output: ScallopOption[Boolean] = opt[Boolean](default = Some(false), descr = "Output a list of depositIds of the deposits that were deleted")
     val doUpdate: ScallopOption[Boolean] = opt[Boolean](noshort = true, default = Some(false), descr = "Do the actual deleting of deposits and updating of deposit.properties")
+    // newStateLabel and newStateDescription can only be given together (both of them of neither of them has to be present)
+    // newStateLabel and newStateDescription can only be given when also dataOnly is given
     codependent(newStateLabel, newStateDescription)
     dependsOnAll(newStateLabel, List(dataOnly, newStateDescription))
     descr("removes deposit with specified state")
