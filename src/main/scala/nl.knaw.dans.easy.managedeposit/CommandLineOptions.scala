@@ -92,8 +92,6 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     dependsOnAll(newStateLabel, List(dataOnly, newStateDescription))
     descr("removes deposit with specified state")
     footer(SUBCOMMAND_SEPARATOR)
-    verify()
-    newStateLabel.foreach { stateLabel => State.toState(stateLabel).getOrElse(throw new IllegalArgumentException(s"state: $stateLabel is an unrecognized state")) }
   }
   addSubcommand(cleanCmd)
 

@@ -52,6 +52,7 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (error @ commandLine.reportCmd.errorCmd) :: Nil =>
       app.createErrorReport(error.depositor.toOption, error.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
+      clean.newStateLabel.foreach { stateLabel => State.toState(stateLabel).getOrElse(throw new IllegalArgumentException(s"state: $stateLabel is an unrecognized state")) }
       val deleting = if(clean.doUpdate()) "Deleting" else "To be deleted"
       val dataFrom = if(clean.dataOnly()) "data from " else ""
       val replacingWithState = if(clean.newStateLabel.isSupplied) s", replacing with state ${clean.newStateLabel.getOrElse("")}"  else ""
