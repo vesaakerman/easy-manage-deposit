@@ -54,7 +54,7 @@ object Command extends App with DebugEnhancedLogging {
     case (clean @ commandLine.cleanCmd) :: Nil =>
       val deleting = if(clean.doUpdate()) "Deleting" else "To be deleted"
       val dataFrom = if(clean.dataOnly()) "data from " else ""
-      val replacingWithState = if(clean.newStateLabel.isSupplied) s", replacing with state ${clean.newStateLabel.apply()}"  else ""
+      val replacingWithState = if(clean.newStateLabel.isSupplied) s", replacing with state ${clean.newStateLabel.getOrElse("")}"  else ""
       val depositor = clean.depositor.toOption.getOrElse("all users")
       Console.out.println(s"$deleting ${dataFrom}deposits with state ${clean.state()}$replacingWithState for $depositor")
       if (clean.force() || cleanInteraction())

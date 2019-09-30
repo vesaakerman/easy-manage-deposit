@@ -88,9 +88,10 @@ class CommandLineOptions(args: Array[String], configuration: Configuration) exte
     val doUpdate: ScallopOption[Boolean] = opt[Boolean](noshort = true, default = Some(false), descr = "Do the actual deleting of deposits and updating of deposit.properties")
     codependent(newStateLabel, newStateDescription)
     dependsOnAll(newStateLabel, List(dataOnly, newStateDescription))
-    newStateLabel.foreach { stateLabel => State.toState(stateLabel).getOrElse(throw new IllegalArgumentException(s"state: $stateLabel is an unrecognized state")) }
     descr("removes deposit with specified state")
     footer(SUBCOMMAND_SEPARATOR)
+    verify()
+    newStateLabel.foreach { stateLabel => State.toState(stateLabel).getOrElse(throw new IllegalArgumentException(s"state: $stateLabel is an unrecognized state")) }
   }
   addSubcommand(cleanCmd)
 
