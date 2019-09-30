@@ -34,22 +34,22 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
     super.afterEach()
   }
 
-  "deleteDepositsFromDepositsDir" should "return a list of two DeletedDepositInformation items" in {
+  "deleteDepositsFromDepositsDir" should "return a list of two DepositInformation items" in {
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
-    val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters)
+    val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters, "SWORD2")
     result.size shouldBe 2
   }
 
   it should "make the size of depositDir 2 items smaller" in {
     val sizeOriginal = depositDir.list.size
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
-    app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters)
+    app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters, "SWORD2")
     depositDir.list.size shouldBe sizeOriginal - 2
   }
 
   it should "return an empty list when no deposits to delete" in {
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = UNKNOWN, onlyData = false, doUpdate = true)
-    val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters)
+    val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters, "SWORD2")
     result.size shouldBe 0
   }
 

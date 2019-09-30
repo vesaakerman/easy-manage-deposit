@@ -27,7 +27,6 @@ package object managedeposit {
 
   type DepositId = String
   type Deposits = Seq[DepositInformation]
-  type DeletedDeposits = Seq[DeletedDepositInformation]
   type DepositorId = String
   type Deposit = Path
   type Age = Int

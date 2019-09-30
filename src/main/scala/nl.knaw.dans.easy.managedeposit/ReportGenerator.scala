@@ -73,7 +73,7 @@ object ReportGenerator {
     printStream.println()
   }
 
-  def outputDeletedDeposits(deposits: DeletedDeposits)(implicit printStream: PrintStream): Unit = printDeleteRecord(deposits)
+  def outputDeletedDeposits(deposits: Deposits)(implicit printStream: PrintStream): Unit = printDeleteRecord(deposits)
 
   private def printRecords(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
@@ -103,24 +103,27 @@ object ReportGenerator {
     }
   }
 
-  private def printDeleteRecord(deposits: DeletedDeposits)(implicit printStream: PrintStream): Unit = {
+  private def printDeleteRecord(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
-      .withHeader("DEPOSITOR", "DEPOSIT_ID", "BAG_NAME", "DEPOSIT_STATE", "ORIGIN", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
+      .withHeader("DEPOSITOR", "DEPOSIT_ID", "BAG_NAME", "DEPOSIT_STATE", "ORIGIN", "LOCATION", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
         "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION")
       .withDelimiter(',')
       .withRecordSeparator('\n')
 
     for (printer <- managed(csvFormat.print(printStream));
-         deposit <- deposits.sortBy(_.creationDate)) {
+         deposit <- deposits.sortBy(_.creationTimestamp)) {
       printer.printRecord(
         deposit.depositor,
         deposit.depositId,
         deposit.bagDirName,
         deposit.state,
         deposit.origin,
+        deposit.location,
+        deposit.doiIdentifier,
+        deposit.registeredString,
         deposit.fedoraIdentifier,
-        deposit.creationDate,
-        deposit.lastModifiedDate,
+        deposit.creationTimestamp,
+        deposit.lastModified,
         deposit.description,
       )
     }
