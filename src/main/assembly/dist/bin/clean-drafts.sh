@@ -28,7 +28,7 @@ if [[ "$EASY_ACCOUNT" == "-" ]]; then
 fi
 
 DATE=$(date +%Y-%m-%d)
-REPORT_DELETED=${TMPDIR}/report-deleted-drafts-${EASY_ACCOUNT:-all}-$DATE.txt
+REPORT_DELETED=${TMPDIR}/report-deleted-drafts-${EASY_ACCOUNT:-all}-$DATE.csv
 
 if [[ "$FROM" == "" ]]; then
     FROM_EMAIL=""
