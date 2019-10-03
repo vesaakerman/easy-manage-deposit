@@ -61,7 +61,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
   }
 
   def getStateDescription: Option[String] = {
-    getProperty("state.description")
+    getProperty(stateDescription)
   }
 
   def getDepositorId: Option[String] = {
@@ -74,10 +74,6 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
 
   def getCreationTime: Option[DateTime] = {
     getProperty("creation.timestamp").map(timeString => new DateTime(timeString))
-  }
-
-  def getCreationDate: Option[LocalDate] = {
-    getProperty("creation.timestamp").map(timeString => new DateTime(timeString).toLocalDate)
   }
 
   def isCurationRequired: Boolean = {

@@ -30,10 +30,6 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
     File(getClass.getResource("/inputForEasyManageDeposit/").toURI).copyTo(depositDir)
   }
 
-  override def afterEach(): Unit = {
-    super.afterEach()
-  }
-
   "deleteDepositsFromDepositsDir" should "return a list of two DepositInformation items" in {
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
     val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters, "SWORD2")
