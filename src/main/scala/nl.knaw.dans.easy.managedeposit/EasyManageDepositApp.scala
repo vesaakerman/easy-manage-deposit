@@ -46,8 +46,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge, location))
   }
 
-  def deleteDepositsFromDepositsDir(depositsDir: Path, deleteParams: DeleteParameters, location: String): Deposits = {
-    depositsDir.list(deleteDepositsFromDepositsDir(deleteParams, location)).collect { case Some(d) => d }
+  def deleteDepositsFromDepositsDir(depositsDir: Path, deleteParams: DeleteParameters, location: String): Try[Deposits] = {
+    depositsDir.list(deleteDepositsFromDepositsDir(deleteParams, location))
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], location: String)(depositPaths: List[Path]): Deposits = {
@@ -64,14 +64,14 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositPaths.collect { case file if Files.isDirectory(file) => new DepositManager(file) }
   }
 
-  def deleteDepositsFromDepositsDir(deleteParams: DeleteParameters, location: String)(depositPaths: List[Path]): List[Option[DepositInformation]] = {
+  def deleteDepositsFromDepositsDir(deleteParams: DeleteParameters, location: String)(depositPaths: List[Path]): Try[List[DepositInformation]] = Try {
     for {
       depositManager <- getDepositManagers(depositPaths)
       depositInformation <- depositManager.deleteDepositFromDir(deleteParams, location)
         .doIfFailure {
           case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e)
         }
-        .toOption
+        .unsafeGetOrThrow
     } yield depositInformation
   }
 
@@ -96,12 +96,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of error report."
   }
 
-  def cleanDeposits(deleteParams: DeleteParameters): Try[String] = Try {
-    val sword2DeletedDeposits = deleteDepositsFromDepositsDir(sword2DepositsDir, deleteParams, "SWORD2")
-    val ingestFlowDeletedDeposits = deleteDepositsFromDepositsDir(ingestFlowInbox, deleteParams, "INGEST_FLOW")
-    if (deleteParams.output || !deleteParams.doUpdate)
-      ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
-    "Execution of clean: success "
+  def cleanDeposits(deleteParams: DeleteParameters): Try[FeedBackMessage] = {
+    for {
+      sword2DeletedDeposits <- deleteDepositsFromDepositsDir(sword2DepositsDir, deleteParams, "SWORD2")
+      ingestFlowDeletedDeposits <- deleteDepositsFromDepositsDir(ingestFlowInbox, deleteParams, "INGEST_FLOW")
+    } yield {
+      if (deleteParams.output || !deleteParams.doUpdate)
+        ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
+      "Execution of clean: success "
+    }
   }
 
   def syncFedoraState(easyDatasetId: DatasetId): Try[FeedBackMessage] = {
