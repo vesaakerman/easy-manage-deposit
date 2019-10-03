@@ -372,7 +372,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "change state and state description in deposit.properties when newStateLabel and newStateDesciption are given" in {
     ruimteReis01 should exist
     val depositManager = new DepositManager(ruimteReis01Path)
-    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = true, newStateLabel = "INVALID", newStateDescription = "abandoned draft, data removed")
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = true, newState = Some(State.INVALID, "abandoned draft, data removed"))
     depositManager.deleteDepositFromDir(deleteParameters, "INGEST_FLOW") shouldBe a[Success[_]]
     depositManager.getStateLabel shouldBe INVALID
     depositManager.getStateDescription shouldBe Some("abandoned draft, data removed")
@@ -381,7 +381,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "not change state and state description in deposit.properties when newStateLabel and newStateDesciption are given, but doUpdate = false" in {
     ruimteReis01 should exist
     val depositManager = new DepositManager(ruimteReis01Path)
-    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = false, newStateLabel = "INVALID", newStateDescription = "abandoned draft, data removed")
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = false, newState = Some(State.INVALID, "abandoned draft, data removed"))
     depositManager.deleteDepositFromDir(deleteParameters, "INGEST_FLOW") shouldBe a[Success[_]]
     depositManager.getStateLabel shouldBe SUBMITTED
     depositManager.getStateDescription shouldBe Some("Deposit is valid and ready for post-submission processing")
@@ -391,7 +391,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     ruimteReis01 should exist
     val depositManager = new DepositManager(ruimteReis01Path)
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
-    val depositInfo = depositManager.deleteDepositFromDir(deleteParameters, "INGEST_FLOW").toOption.getOrElse("").toString
+    val depositInfo = depositManager.deleteDepositFromDir(deleteParameters, "INGEST_FLOW").toOption.flatten.getOrElse("").toString
     val result = depositInfo.slice(0, depositInfo.indexOf("2018-11"))   // because timestamp differs in each test run, we compare the contents till the first tiestamp
     result shouldBe "DepositInformation(aba410b6-1a55-40b2-9ebe-6122aad00285,n/a,None,n/a,user001,SUBMITTED,Deposit is valid and ready for post-submission processing,"
   }
