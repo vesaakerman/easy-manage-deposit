@@ -72,7 +72,7 @@ ARGUMENTS
             -o, --output                         Output a list of depositIds of the
                                                  deposits that were deleted
             -s, --state  <arg>                   The deposits with the specified state
-                                                 argument are deleted (default = DRAFT)
+                                                 argument are deleted
             -h, --help                           Show help message
             
            trailing arguments:
