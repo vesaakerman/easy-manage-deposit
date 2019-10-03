@@ -47,7 +47,7 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def deleteDepositsFromDepositsDir(depositsDir: Path, deleteParams: DeleteParameters, location: String): Deposits = {
-    depositsDir.list(deleteDepositsFromDepositsDir(deleteParams, location)).filter(d => d.nonEmpty).map(d => d.get)
+    depositsDir.list(deleteDepositsFromDepositsDir(deleteParams, location)).collect { case Some(d) => d }
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], location: String)(depositPaths: List[Path]): Deposits = {
@@ -65,16 +65,14 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
   }
 
   def deleteDepositsFromDepositsDir(deleteParams: DeleteParameters, location: String)(depositPaths: List[Path]): List[Option[DepositInformation]] = {
-    getDepositManagers(depositPaths)
-      .map { depositManager =>
-        // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
-        depositManager.deleteDepositFromDir(deleteParams, location)
-          .doIfFailure {
-            case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e)
-          }
-          .collect { case d: DepositInformation => d }
-          .toOption
-      }
+    for {
+      depositManager <- getDepositManagers(depositPaths)
+      depositInformation <- depositManager.deleteDepositFromDir(deleteParams, location)
+        .doIfFailure {
+          case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e)
+        }
+        .toOption
+    } yield depositInformation
   }
 
   def summary(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
@@ -98,12 +96,10 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of error report."
   }
 
-  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean, doUpdate: Boolean, newStateLabel: Option[String], newStateDescription: Option[String], output: Boolean): Try[String] = Try {
-    val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
-    val deleteParams = DeleteParameters(depositor, age, toBeDeletedState, onlyData, doUpdate, newStateLabel.getOrElse(""), newStateDescription.getOrElse(""), output)
+  def cleanDeposits(deleteParams: DeleteParameters): Try[String] = Try {
     val sword2DeletedDeposits = deleteDepositsFromDepositsDir(sword2DepositsDir, deleteParams, "SWORD2")
     val ingestFlowDeletedDeposits = deleteDepositsFromDepositsDir(ingestFlowInbox, deleteParams, "INGEST_FLOW")
-    if (output || !doUpdate)
+    if (deleteParams.output || !deleteParams.doUpdate)
       ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
     "Execution of clean: success "
   }
