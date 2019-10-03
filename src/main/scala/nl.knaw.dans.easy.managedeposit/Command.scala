@@ -19,7 +19,6 @@ import java.nio.file.Paths
 
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
-import org.rogach.scallop.ScallopOption
 
 import scala.annotation.tailrec
 import scala.io.StdIn
@@ -52,14 +51,21 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (error @ commandLine.reportCmd.errorCmd) :: Nil =>
       app.createErrorReport(error.depositor.toOption, error.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
-      clean.newStateLabel.foreach { stateLabel => State.toState(stateLabel).getOrElse(throw new IllegalArgumentException(s"state: $stateLabel is an unrecognized state")) }
-      val deleting = if(clean.doUpdate()) "Deleting" else "To be deleted"
-      val dataFrom = if(clean.dataOnly()) "data from " else ""
-      val replacingWithState = if(clean.newStateLabel.isSupplied) s", replacing with state ${clean.newStateLabel.getOrElse("")}"  else ""
+      val state = clean.state.getOrElse(throw new IllegalArgumentException(s"state: ${clean.state} is an unrecognized state"))
+      val newState = for {
+        state <- clean.newStateLabel.toOption
+        description <- clean.newStateDescription.toOption
+      } yield (state, description)
+      val deleteParams = DeleteParameters(clean.depositor.toOption, clean.keep(), state, clean.dataOnly(), clean.doUpdate(), newState, clean.output())
+      val deleting = if (clean.doUpdate()) "Deleting"
+                     else "To be deleted"
+      val dataFrom = if (clean.dataOnly()) "data from "
+                     else ""
+      val replacingWithState = clean.newStateLabel.toOption.fold("")(stateLabel => s", replacing with state $stateLabel")
       val depositor = clean.depositor.toOption.getOrElse("all users")
-      Console.out.println(s"$deleting ${dataFrom}deposits with state ${clean.state()}$replacingWithState for $depositor")
+      Console.out.println(s"$deleting ${ dataFrom }deposits with state ${ clean.state() }$replacingWithState for $depositor")
       if (clean.force() || cleanInteraction())
-        app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), clean.newStateLabel.toOption, clean.newStateDescription.toOption, clean.output())
+        app.cleanDeposits(deleteParams)
       else
         Try { "Clean operation aborted by user" }
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>

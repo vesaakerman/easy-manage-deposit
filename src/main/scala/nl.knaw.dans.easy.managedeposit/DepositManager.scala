@@ -188,12 +188,12 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     } yield doGetLastModifiedStamp()
   }
 
-  def deleteDepositFromDir(deleteParams: DeleteParameters, location: String)(implicit dansDoiPrefixes: List[String]): Try[DepositInformation] = {
+  def deleteDepositFromDir(deleteParams: DeleteParameters, location: String)(implicit dansDoiPrefixes: List[String]): Try[Option[DepositInformation]] = {
     for {
       _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
       shouldDelete = shouldDeleteDepositDir(deleteParams.filterOnDepositor, deleteParams.age, deleteParams.state)
-      deleted <- if (shouldDelete) deleteDepositFromDirectory(deleteParams, location)
-                 else Success(null)
+      deleted <- if (shouldDelete) deleteDepositFromDirectory(deleteParams, location).map(Option(_))
+                 else Success(None)
     } yield deleted
   }
 
@@ -211,7 +211,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     if (deleteParams.doUpdate) {
       val depositorId = getDepositorId
       val depositState = getStateLabel
-      if (deleteParams.onlyData) deleteOnlyDataFromDeposit(depositorId, depositState, deleteParams.newStateLabel, deleteParams.newStateDescription)
+      if (deleteParams.onlyData) deleteOnlyDataFromDeposit(depositorId, depositState, deleteParams.newState)
       else deleteDepositDirectory(depositorId, depositState)
     }
     depositInfo
@@ -222,7 +222,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     FileUtils.deleteDirectory(deposit.toFile)
   }
 
-  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State, newStateLabel: String, newStateDescription: String): Try[Unit] = Try {
+  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State, newState: Option[(State, String)]): Try[Unit] = Try {
     deposit.toFile.listFiles()
       .withFilter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
       .map(_.toPath)
@@ -230,7 +230,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
         validateThatFileIsReadable(path)
           .doIfSuccess(_ => doDeleteDataFromDeposit(depositorId, depositState, path)).unsafeGetOrThrow
       })
-    setState(newStateLabel, newStateDescription)
+    newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
   }
 
   private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path): Unit = {
@@ -247,12 +247,10 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     filterOnDepositor.forall(depositorId ==) && ageRequirementIsMet && getStateLabel == state
   }
 
-  private def setState(newStateLabel: String, newStateDescription: String): Unit = {
-    if (newStateLabel.nonEmpty) {
-      setProperty(stateLabelKey, newStateLabel)
-      setProperty(stateDescription, newStateDescription)
-      saveProperties()
-    }
+  private def setState(newStateLabel: State.State, newStateDescription: String): Unit = {
+    setProperty(stateLabelKey, newStateLabel.toString)
+    setProperty(stateDescription, newStateDescription)
+    saveProperties()
   }
 
   private def getProperty(key: String): Option[String] = {
