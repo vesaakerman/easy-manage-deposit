@@ -4,7 +4,7 @@
 #
 
 usage() {
-    echo "Usage: clean-draft-deposits <host-name> [<depositor-account>] [keep] "
+    echo "Usage: clean-draft-deposits <host-name> [<depositor-account>] [<keep>] "
     echo "       clean-draft-deposits --help"
 }
 
