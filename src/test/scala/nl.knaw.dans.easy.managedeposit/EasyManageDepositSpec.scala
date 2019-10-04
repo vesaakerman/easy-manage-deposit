@@ -19,6 +19,9 @@ import better.files.File
 import nl.knaw.dans.easy.managedeposit.State._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.Inside.inside
+
+import scala.util.Success
 
 class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
 
@@ -33,7 +36,10 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
   "deleteDepositsFromDepositsDir" should "return a list of two DepositInformation items" in {
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
     val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters, "SWORD2")
-    result.get.size shouldBe 2
+    inside (result) {
+      case Success(n) =>
+        n should have size 2
+    }
   }
 
   it should "make the size of depositDir 2 items smaller" in {
@@ -46,7 +52,10 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "return an empty list when no deposits to delete" in {
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = UNKNOWN, onlyData = false, doUpdate = true)
     val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters, "SWORD2")
-    result.get.size shouldBe 0
+    inside (result) {
+      case Success(n) =>
+        n should have size 0
+    }
   }
 
   private def createProperties(): PropertiesConfiguration = {
