@@ -27,7 +27,7 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
   override def beforeEach(): Unit = {
     super.beforeEach()
     depositDir.clear()
-    File(getClass.getResource("/inputForEasyManageDeposit/").toURI).copyTo(depositDir)
+    File(getClass.getResource("/inputForEasyManageDepositClean/").toURI).copyTo(depositDir)
   }
 
   "deleteDepositsFromDepositsDir" should "return a list of two DepositInformation items" in {
