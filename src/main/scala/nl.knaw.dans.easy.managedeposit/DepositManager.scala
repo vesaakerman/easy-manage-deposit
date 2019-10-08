@@ -204,19 +204,16 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
 
   private def deleteDepositFromDirectory(deleteParams: DeleteParameters, location: String)(implicit dansDoiPrefixes: List[String]): Try[Option[DepositInformation]] = {
     def doDelete(): Try[Boolean] = {
-      if (deleteParams.doUpdate) {
-        val depositorId = getDepositorId
-        val depositState = getStateLabel
-        if (deleteParams.onlyData)
-          deleteOnlyDataFromDeposit(depositorId, depositState)
-            .doIfSuccess {
-              case true => deleteParams.newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
-              case false => // do nothing
-            }
-        else
-          deleteDepositDirectory(depositorId, depositState)
-      }
-      else Success(true) // nothing was deleted, but we want the report line in the output; therefore 'true' rather than 'false'
+      val depositorId = getDepositorId
+      val depositState = getStateLabel
+      if (deleteParams.onlyData)
+        deleteOnlyDataFromDeposit(deleteParams.doUpdate, depositorId, depositState)
+          .doIfSuccess {
+            case true => deleteParams.newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
+            case false => // do nothing
+          }
+      else
+        deleteDepositDirectory(deleteParams.doUpdate, depositorId, depositState)
     }
 
     for {
@@ -226,30 +223,33 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
             else None
   }
 
-  private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Boolean] = Try {
-    logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
-    FileUtils.deleteDirectory(deposit.toFile)
+  private def deleteDepositDirectory(doUpdate: Boolean, depositorId: Option[String], depositState: State): Try[Boolean] = Try {
+    if (doUpdate) {
+      logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
+      //    FileUtils.deleteDirectory(deposit.toFile)
+    }
     true
   }
 
-  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State): Try[Boolean] = Try {
+  private def deleteOnlyDataFromDeposit(doUpdate: Boolean, depositorId: Option[DepositorId], depositState: State): Try[Boolean] = Try {
     var hasDeletedSomething = false
-    deposit.toFile.listFiles()
-      .withFilter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
-      .map(_.toPath)
-      .foreach(path => {
-        hasDeletedSomething = true
-        validateThatFileIsReadable(path)
-          .doIfSuccess(_ => doDeleteDataFromDeposit(depositorId, depositState, path)).unsafeGetOrThrow
-      })
-
+    if (doUpdate) {
+      deposit.toFile.listFiles()
+        .withFilter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
+        .map(_.toPath)
+        .foreach(path => {
+          hasDeletedSomething = true
+          validateThatFileIsReadable(path)
+            .doIfSuccess(_ => doDeleteDataFromDeposit(depositorId, depositState, path)).unsafeGetOrThrow
+        })
+    }
     hasDeletedSomething
   }
 
   private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path): Unit = {
     logger.info(s"DELETE data from deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
-    if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
-    else Files.delete(path)
+    //    if (Files.isDirectory(path)) FileUtils.deleteDirectory(path.toFile)
+    //    else Files.delete(path)
   }
 
   private def shouldDeleteDepositDir(filterOnDepositor: Option[DepositorId], age: Int, state: State): Boolean = {
