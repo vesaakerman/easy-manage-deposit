@@ -24,7 +24,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.BooleanUtils
-import org.joda.time.{ DateTime, DateTimeZone, Duration, LocalDate }
+import org.joda.time.{ DateTime, DateTimeZone, Duration }
 import resource.managed
 
 import scala.collection.JavaConverters._
@@ -188,9 +188,9 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     for {
       _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
       shouldDelete = shouldDeleteDepositDir(deleteParams.filterOnDepositor, deleteParams.age, deleteParams.state)
-      deleted <- if (shouldDelete) deleteDepositFromDirectory(deleteParams, location).map(Option(_))
-                 else Success(None)
-    } yield deleted
+      depositInfo <- if (shouldDelete) deleteDepositFromDirectory(deleteParams, location)
+                     else Success(None)
+    } yield depositInfo
   }
 
   private def doGetLastModifiedStamp(): Option[DateTime] = {
@@ -202,31 +202,48 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     }
   }
 
-  private def deleteDepositFromDirectory(deleteParams: DeleteParameters, location: String)(implicit dansDoiPrefixes: List[String]): Try[DepositInformation] = {
-    val depositInfo = getDepositInformation(location)
-    if (deleteParams.doUpdate) {
-      val depositorId = getDepositorId
-      val depositState = getStateLabel
-      if (deleteParams.onlyData) deleteOnlyDataFromDeposit(depositorId, depositState, deleteParams.newState)
-      else deleteDepositDirectory(depositorId, depositState)
+  private def deleteDepositFromDirectory(deleteParams: DeleteParameters, location: String)(implicit dansDoiPrefixes: List[String]): Try[Option[DepositInformation]] = {
+    def doDelete(): Try[Boolean] = {
+      if (deleteParams.doUpdate) {
+        val depositorId = getDepositorId
+        val depositState = getStateLabel
+        if (deleteParams.onlyData)
+          deleteOnlyDataFromDeposit(depositorId, depositState)
+            .doIfSuccess {
+              case true => deleteParams.newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
+              case false => // do nothing
+            }
+        else
+          deleteDepositDirectory(depositorId, depositState)
+      }
+      else Success(true) // nothing was deleted, but we want the report line in the output; therefore 'true' rather than 'false'
     }
-    depositInfo
+
+    for {
+      depositInfo <- getDepositInformation(location)
+      didDelete <- doDelete()
+    } yield if (didDelete) Some(depositInfo)
+            else None
   }
 
-  private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {
+  private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Boolean] = Try {
     logger.info(s"DELETE deposit for ${ depositorId.getOrElse("<unknown>") } from $depositState $deposit")
     FileUtils.deleteDirectory(deposit.toFile)
+    true
   }
 
-  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State, newState: Option[(State, String)]): Try[Unit] = Try {
+  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State): Try[Boolean] = Try {
+    var hasDeletedSomething = false
     deposit.toFile.listFiles()
       .withFilter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
       .map(_.toPath)
       .foreach(path => {
+        hasDeletedSomething = true
         validateThatFileIsReadable(path)
           .doIfSuccess(_ => doDeleteDataFromDeposit(depositorId, depositState, path)).unsafeGetOrThrow
       })
-    newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
+
+    hasDeletedSomething
   }
 
   private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path): Unit = {
