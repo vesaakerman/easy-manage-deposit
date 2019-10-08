@@ -6,12 +6,12 @@ easy-manage-deposit
 SYNOPSIS
 --------
    
-     easy-manage-deposit report full [-a, --age <n>] [<depositor>]
-     easy-manage-deposit report summary [-a, --age <n>] [<depositor>]
-     easy-manage-deposit report error [-a, --age <n>] [<depositor>]
-     easy-manage-deposit clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [<depositor>]
-     easy-manage-deposit sync-fedora-state <easy-dataset-id>
-     easy-manage-deposit retry [<depositor>]
+    easy-manage-deposit report full [-a, --age <n>] [<depositor>]
+    easy-manage-deposit report summary [-a, --age <n>] [<depositor>]
+    easy-manage-deposit report error [-a, --age <n>] [<depositor>]
+    easy-manage-deposit clean [-d, --data-only] [-s, --state <state>] [-k, --keep <n>] [-l, --new-state-label <state>] [-n, --new-state-description <description>] [-f, --force] [-o, --output] [--do-update] [<depositor>]
+    easy-manage-deposit sync-fedora-state <easy-dataset-id>
+
      
          
 ARGUMENTS
@@ -54,17 +54,27 @@ ARGUMENTS
             depositor (not required)
           ---
           Subcommand: clean - removes deposit with specified state
-            -d, --data-only      If specified, the deposit.properties and the container
-                                 file of the deposit are not deleted
-            -k, --keep  <arg>    The deposits whose ages are strictly greater than the
-                                 argument n (days) are deleted. An age argument of n=0
-                                 days corresponds to 0<=n<1. The default case is set to
-                                 n=-1, so that the deposits that are younger than 1 day
-                                 are not skipped in the default case. (default = -1)
-            -s, --state  <arg>   The deposits with the specified state argument are
-                                 deleted (default = DRAFT)
-            -h, --help           Show help message
-          
+            -d, --data-only                      If specified, the deposit.properties and
+                                                 the container file of the deposit are not
+                                                 deleted
+                --do-update                      Do the actual deleting of deposits and
+                                                 updating of deposit.properties
+            -f, --force                          The user is not asked for a confirmation
+            -k, --keep  <arg>                    The deposits whose ages are greater than
+                                                 or equal to the argument n (days) are
+                                                 deleted. An age argument of n=0 days
+                                                 corresponds to 0<=n<1. (default = -1)
+            -n, --new-state-description  <arg>   The state description in
+                                                 deposit.properties after the deposit has
+                                                 been deleted
+            -l, --new-state-label  <arg>         The state label in deposit.properties
+                                                 after the deposit has been deleted
+            -o, --output                         Output a list of depositIds of the
+                                                 deposits that were deleted
+            -s, --state  <arg>                   The deposits with the specified state
+                                                 argument are deleted
+            -h, --help                           Show help message
+            
            trailing arguments:
             depositor (not required)
           ---

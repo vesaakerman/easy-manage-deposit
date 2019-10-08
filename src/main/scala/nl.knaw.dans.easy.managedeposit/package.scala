@@ -35,10 +35,20 @@ package object managedeposit {
   val XML_NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance"
   val XML_NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/"
   val dateTimeFormatter: DateTimeFormatter = ISODateTimeFormat.dateTime()
+  val dateFormatter: DateTimeFormatter = ISODateTimeFormat.date()
   val notAvailable = "n/a"
 
   case class NotReadableException(path: Path, cause: Throwable = null)
     extends Exception(s"""cannot read $path""", cause)
+
+  case class DeleteParameters(filterOnDepositor: Option[DepositorId],
+                              age: Int,
+                              state: State.State,
+                              onlyData: Boolean,
+                              doUpdate: Boolean,
+                              newState: Option[(State.State, String)] = None,
+                              output: Boolean = false,
+                             )
 
   implicit class PathExtensions(val path: Path) extends AnyVal {
     def list[T](f: List[Path] => T): T = {

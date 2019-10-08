@@ -20,7 +20,6 @@ import java.nio.file.{ Files, Path, Paths }
 
 import com.yourmediashelf.fedora.client.{ FedoraClient, FedoraCredentials }
 import nl.knaw.dans.easy.managedeposit.Command.FeedBackMessage
-import nl.knaw.dans.easy.managedeposit.State._
 import nl.knaw.dans.lib.error._
 import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 
@@ -47,9 +46,8 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositsDir.list(collectDataFromDepositsDir(filterOnDepositor, filterOnAge, location))
   }
 
-  def deleteDepositFromDepositsDir(depositsDir: Path, filterOnDepositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[Unit] = {
-    val toBeDeletedState = State.toState(state).getOrElse(throw new IllegalArgumentException(s"state: $state is an unrecognized state")) // assigning unknown or null to the state when given an invalid state argument is dangerous while deleting
-    depositsDir.list(deleteDepositsFromDepositsDir(filterOnDepositor, age, toBeDeletedState, onlyData))
+  def deleteDepositsFromDepositsDir(depositsDir: Path, deleteParams: DeleteParameters, location: String): Try[Deposits] = {
+    depositsDir.list(deleteDepositsFromDepositsDir(deleteParams, location))
   }
 
   private def collectDataFromDepositsDir(filterOnDepositor: Option[DepositorId], filterOnAge: Option[Age], location: String)(depositPaths: List[Path]): Deposits = {
@@ -66,15 +64,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     depositPaths.collect { case file if Files.isDirectory(file) => new DepositManager(file) }
   }
 
-  def deleteDepositsFromDepositsDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean)(depositPaths: List[Path]): Try[Unit] = Try {
-    getDepositManagers(depositPaths)
-      .foreach { depositManager =>
-        // The result of the Try will be discarded, only logged as other deposits need to be deleted nonetheless
-        depositManager.deleteDepositFromDir(filterOnDepositor, age, state, onlyData)
-          .doIfFailure {
-            case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e)
-          }
-      }
+  def deleteDepositsFromDepositsDir(deleteParams: DeleteParameters, location: String)(depositPaths: List[Path]): Try[List[DepositInformation]] = Try {
+    for {
+      depositManager <- getDepositManagers(depositPaths)
+      depositInformation <- depositManager.deleteDepositFromDir(deleteParams, location)
+        .doIfFailure {
+          case e: Exception => logger.error(s"[${ depositManager.getDepositId }] Error while deleting deposit: ${ e.getMessage }", e)
+        }
+        .unsafeGetOrThrow
+    } yield depositInformation
   }
 
   def summary(depositor: Option[DepositorId], age: Option[Age]): Try[String] = Try {
@@ -98,11 +96,15 @@ class EasyManageDepositApp(configuration: Configuration) extends DebugEnhancedLo
     "End of error report."
   }
 
-  def cleanDepositor(depositor: Option[DepositorId], age: Int, state: String, onlyData: Boolean): Try[String] = {
+  def cleanDeposits(deleteParams: DeleteParameters): Try[FeedBackMessage] = {
     for {
-      _ <- deleteDepositFromDepositsDir(sword2DepositsDir, depositor, age, state, onlyData)
-      _ <- deleteDepositFromDepositsDir(ingestFlowInbox, depositor, age, state, onlyData)
-    } yield "Execution of clean: success "
+      sword2DeletedDeposits <- deleteDepositsFromDepositsDir(sword2DepositsDir, deleteParams, "SWORD2")
+      ingestFlowDeletedDeposits <- deleteDepositsFromDepositsDir(ingestFlowInbox, deleteParams, "INGEST_FLOW")
+    } yield {
+      if (deleteParams.output || !deleteParams.doUpdate)
+        ReportGenerator.outputDeletedDeposits(sword2DeletedDeposits ++ ingestFlowDeletedDeposits)(Console.out)
+      "Execution of clean: success "
+    }
   }
 
   def syncFedoraState(easyDatasetId: DatasetId): Try[FeedBackMessage] = {

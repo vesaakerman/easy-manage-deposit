@@ -48,7 +48,7 @@ object ReportGenerator {
       case DepositInformation(_, _, _, _, _, UNKNOWN, _, _, _, _, _, _, _, _) => true
       case DepositInformation(_, _, _, _, _, null, _, _, _, _, _, _, _, _) => true
       // When the doi of an archived deposit is NOT registered, an error should be raised
-      case d@DepositInformation(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _, _, _) if d.isDansDoi => true
+      case d @ DepositInformation(_, _, Some(false), _, _, ARCHIVED, _, _, _, _, _, _, _, _) if d.isDansDoi => true
       case _ => false
     })
   }
@@ -72,6 +72,8 @@ object ReportGenerator {
     depositsGroupedByState.foreach { case (state, toBePrintedDeposits) => printLineForDepositGroup(state, toBePrintedDeposits) }
     printStream.println()
   }
+
+  def outputDeletedDeposits(deposits: Deposits)(implicit printStream: PrintStream): Unit = printDeleteRecord(deposits)
 
   private def printRecords(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
     val csvFormat: CSVFormat = CSVFormat.RFC4180
@@ -97,6 +99,32 @@ object ReportGenerator {
         deposit.description,
         deposit.numberOfContinuedDeposits.toString,
         deposit.storageSpace.toString,
+      )
+    }
+  }
+
+  private def printDeleteRecord(deposits: Deposits)(implicit printStream: PrintStream): Unit = {
+    val csvFormat: CSVFormat = CSVFormat.RFC4180
+      .withHeader("DEPOSITOR", "DEPOSIT_ID", "BAG_NAME", "DEPOSIT_STATE", "ORIGIN", "LOCATION", "DOI", "DOI_REGISTERED", "FEDORA_ID", "DEPOSIT_CREATION_TIMESTAMP",
+        "DEPOSIT_UPDATE_TIMESTAMP", "DESCRIPTION")
+      .withDelimiter(',')
+      .withRecordSeparator('\n')
+
+    for (printer <- managed(csvFormat.print(printStream));
+         deposit <- deposits.sortBy(_.creationTimestamp)) {
+      printer.printRecord(
+        deposit.depositor,
+        deposit.depositId,
+        deposit.bagDirName,
+        deposit.state,
+        deposit.origin,
+        deposit.location,
+        deposit.doiIdentifier,
+        deposit.registeredString,
+        deposit.fedoraIdentifier,
+        deposit.creationTimestamp,
+        deposit.lastModified,
+        deposit.description,
       )
     }
   }

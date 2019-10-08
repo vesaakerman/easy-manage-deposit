@@ -24,7 +24,7 @@ import nl.knaw.dans.lib.logging.DebugEnhancedLogging
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang.BooleanUtils
-import org.joda.time.{ DateTime, DateTimeZone, Duration }
+import org.joda.time.{ DateTime, DateTimeZone, Duration, LocalDate }
 import resource.managed
 
 import scala.collection.JavaConverters._
@@ -61,7 +61,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
   }
 
   def getStateDescription: Option[String] = {
-    getProperty("state.description")
+    getProperty(stateDescription)
   }
 
   def getDepositorId: Option[String] = {
@@ -184,13 +184,13 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     } yield doGetLastModifiedStamp()
   }
 
-  def deleteDepositFromDir(filterOnDepositor: Option[DepositorId], age: Int, state: State, onlyData: Boolean): Try[Unit] = {
+  def deleteDepositFromDir(deleteParams: DeleteParameters, location: String)(implicit dansDoiPrefixes: List[String]): Try[Option[DepositInformation]] = {
     for {
       _ <- validateUserCanReadTheDepositDirectoryAndTheDepositProperties()
-      shouldDelete = shouldDeleteDepositDir(filterOnDepositor, age, state)
-      _ <- if (shouldDelete) deleteDepositFromDir(onlyData)
-           else Success(())
-    } yield ()
+      shouldDelete = shouldDeleteDepositDir(deleteParams.filterOnDepositor, deleteParams.age, deleteParams.state)
+      deleted <- if (shouldDelete) deleteDepositFromDirectory(deleteParams, location).map(Option(_))
+                 else Success(None)
+    } yield deleted
   }
 
   private def doGetLastModifiedStamp(): Option[DateTime] = {
@@ -202,11 +202,15 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     }
   }
 
-  private def deleteDepositFromDir(onlyData: Boolean): Try[Unit] = {
-    val depositorId = getDepositorId
-    val depositState = getStateLabel
-    if (onlyData) deleteOnlyDataFromDeposit(depositorId, depositState)
-    else deleteDepositDirectory(depositorId, depositState)
+  private def deleteDepositFromDirectory(deleteParams: DeleteParameters, location: String)(implicit dansDoiPrefixes: List[String]): Try[DepositInformation] = {
+    val depositInfo = getDepositInformation(location)
+    if (deleteParams.doUpdate) {
+      val depositorId = getDepositorId
+      val depositState = getStateLabel
+      if (deleteParams.onlyData) deleteOnlyDataFromDeposit(depositorId, depositState, deleteParams.newState)
+      else deleteDepositDirectory(depositorId, depositState)
+    }
+    depositInfo
   }
 
   private def deleteDepositDirectory(depositorId: Option[String], depositState: State): Try[Unit] = Try {
@@ -214,7 +218,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
     FileUtils.deleteDirectory(deposit.toFile)
   }
 
-  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State): Try[Unit] = Try {
+  private def deleteOnlyDataFromDeposit(depositorId: Option[DepositorId], depositState: State, newState: Option[(State, String)]): Try[Unit] = Try {
     deposit.toFile.listFiles()
       .withFilter(_.getName != depositPropertiesFileName) // don't delete the deposit.properties file
       .map(_.toPath)
@@ -222,6 +226,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
         validateThatFileIsReadable(path)
           .doIfSuccess(_ => doDeleteDataFromDeposit(depositorId, depositState, path)).unsafeGetOrThrow
       })
+    newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
   }
 
   private def doDeleteDataFromDeposit(depositorId: Option[DepositorId], depositState: State, path: Path): Unit = {
@@ -236,6 +241,12 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
 
     // forall returns true for the empty set, see https://en.wikipedia.org/wiki/Vacuous_truth
     filterOnDepositor.forall(depositorId ==) && ageRequirementIsMet && getStateLabel == state
+  }
+
+  private def setState(newStateLabel: State.State, newStateDescription: String): Unit = {
+    setProperty(stateLabelKey, newStateLabel.toString)
+    setProperty(stateDescription, newStateDescription)
+    saveProperties()
   }
 
   private def getProperty(key: String): Option[String] = {
@@ -351,6 +362,7 @@ object DepositManager {
   val depositPropertiesFileName: String = "deposit.properties"
   val depositIdKey = "bag-store.bag-id"
   val stateLabelKey = "state.label"
+  val stateDescription = "state.description"
   val metadataDirName = "metadata"
   val dataSetFileName = "dataset.xml"
 }

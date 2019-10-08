@@ -19,12 +19,19 @@ import java.nio.file.attribute.PosixFilePermission
 
 import better.files.File
 import nl.knaw.dans.easy.managedeposit.State._
+import org.apache.commons.configuration.PropertiesConfiguration
 import org.joda.time.{ DateTime, DateTimeZone }
 import org.scalatest.BeforeAndAfterEach
 
 import scala.util.{ Failure, Success }
+import scala.collection.JavaConverters._
 
 class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
+
+  private val configuration = Configuration("1.0.0", createProperties())
+  private implicit val dansDoiPrefixes: List[String] = configuration.properties.getList("dans-doi.prefixes")
+    .asScala.toList
+    .map(prefix => prefix.asInstanceOf[String])
 
   private val depositDirWithoutProperties = depositDir / "deposit-no-properties"
   private val depositDirWithoutPropertiesPath = depositDirWithoutProperties.path
@@ -180,7 +187,7 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val manager = new DepositManager(depositOnePath)
     manager.getBagDirName.value shouldBe "baggy"
   }
-  
+
   it should "find the bag name based on the file system" in {
     val manager = new DepositManager(ruimteReis01Path)
     manager.getBagDirName.value shouldBe "bag"
@@ -226,14 +233,24 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   "deleteDepositFromDir" should "delete the deposit directory from a deposit directory if all conditions are met and onlyData = false" in {
     ruimteReis01 should exist
     val depositManager = new DepositManager(ruimteReis01Path)
-    depositManager.deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    depositManager.deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
     ruimteReis01 shouldNot exist
+  }
+
+  it should "not delete the deposit directory from a deposit directory if all conditions are met and onlyData = false, but doUpdate = false" in {
+    ruimteReis01 should exist
+    val depositManager = new DepositManager(ruimteReis01Path)
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = false)
+    depositManager.deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
+    ruimteReis01 should exist
   }
 
   it should "keep the directory and the properties file if the conditions are met and onlyData = true" in {
     ruimteReis01 should exist
     val depositManager = new DepositManager(ruimteReis01Path)
-    depositManager.deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = true)
+    depositManager.deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
     ruimteReis01 should exist
     ruimteReis01.list.map(_.name).toList should contain only "deposit.properties"
   }
@@ -241,7 +258,8 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "not delete anything if depositor id does not match" in {
     ruimteReis01 should exist
     val depositManager = new DepositManager(ruimteReis01Path)
-    depositManager.deleteDepositFromDir(Some("user009"), 1, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(Some("user009"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = true)
+    depositManager.deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
     ruimteReis01 should exist
     ruimteReis01.list.find(file => file.name == "bag").value shouldBe (File(ruimteReis01Path) / "bag")
   }
@@ -249,43 +267,56 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "not delete anything if the age requirement does not match" in {
     ruimteReis01 should exist
     val ageThreeHundredYears = 365 * 300 // approximately 300 years
-    new DepositManager(ruimteReis01Path).deleteDepositFromDir(Some("user001"), ageThreeHundredYears, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(Some("user001"), age = ageThreeHundredYears, state = SUBMITTED, onlyData = true, doUpdate = true)
+    new DepositManager(ruimteReis01Path).deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
     ruimteReis01 should exist
     (File(ruimteReis01Path) / "bag") should exist
   }
 
   it should "not delete any directories if a non existent path is given" in {
     val initialDirectories = depositDir.list.size
-    new DepositManager(nonExistingDepositPath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    new DepositManager(nonExistingDepositPath).deleteDepositFromDir(deleteParameters, "SWORD2") should matchPattern {
       case Failure(NotReadableException(`nonExistingDepositPath`, _)) =>
     }
     initialDirectories shouldBe depositDir.list.size
   }
 
   it should "delete the directory if no depositor id is given and other conditions match" in {
-    new DepositManager(ruimteReis01Path).deleteDepositFromDir(None, 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(None, age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    new DepositManager(ruimteReis01Path).deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
     ruimteReis01 shouldNot exist
   }
 
+  it should "not delete the directory if no depositor id is given and other conditions match, but doUpdate = false" in {
+    val deleteParameters = DeleteParameters(None, age = 1, state = SUBMITTED, onlyData = false, doUpdate = false)
+    new DepositManager(ruimteReis01Path).deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
+    ruimteReis01 should exist
+  }
+
   it should "not delete the directory if no depositor id is given but the state does not match" in {
-    new DepositManager(ruimteReis01Path).deleteDepositFromDir(None, 1, ARCHIVED, onlyData = false) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(None, age = 1, state = ARCHIVED, onlyData = false, doUpdate = true)
+    new DepositManager(ruimteReis01Path).deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
     ruimteReis01 should exist
   }
 
   it should "not delete the deposit if the depositor id is not in the properties" in {
-    new DepositManager(depositWithoutDepositorPath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    new DepositManager(depositWithoutDepositorPath).deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
     depositWithoutDepositor should exist
   }
 
   it should "delete the deposit if the depositor id is not in the properties, when no filterOnDepositor id given to match" in {
-    new DepositManager(depositWithoutDepositorPath).deleteDepositFromDir(None, 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(None, age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    new DepositManager(depositWithoutDepositorPath).deleteDepositFromDir(deleteParameters, "SWORD2") shouldBe a[Success[_]]
     depositWithoutDepositor shouldNot exist
   }
 
   it should "be able to delete an zipped bag if something during the ingest-flow went wrong" in {
     ruimteReis05.list.size shouldBe 2
     (ruimteReis05 / "bag.zip.1") should exist
-    new DepositManager(ruimteReis05Path).deleteDepositFromDir(None, 1, REJECTED, onlyData = true) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(None, age = 1, state = REJECTED, onlyData = true, doUpdate = true)
+    new DepositManager(ruimteReis05Path).deleteDepositFromDir(deleteParameters, "INGEST_FLOW") shouldBe a[Success[_]]
     ruimteReis05 should exist
     (ruimteReis05 / "bag.zip.1") shouldNot exist
     ruimteReis05.list.toSeq should have size 1
@@ -295,7 +326,8 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     depositOne.list.size shouldBe 3
     (depositOne / "bag.zip.1") should exist
     (depositOne / "bag.zip.2") should exist
-    new DepositManager(depositOnePath).deleteDepositFromDir(None, 1, SUBMITTED, onlyData = true) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(None, age = 1, state = SUBMITTED, onlyData = true, doUpdate = true)
+    new DepositManager(depositOnePath).deleteDepositFromDir(deleteParameters, "INGEST_FLOW") shouldBe a[Success[_]]
     depositOne should exist
     (depositOne / "bag.zip.1") shouldNot exist
     (depositOne / "bag.zip.2") shouldNot exist
@@ -304,13 +336,15 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
   it should "not delete a directory if the creation date is not found" in {
     ruimteReis02 should exist
-    new DepositManager(ruimteReis02Path).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) shouldBe a[Success[_]]
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    new DepositManager(ruimteReis02Path).deleteDepositFromDir(deleteParameters, "INGEST_FLOW") shouldBe a[Success[_]]
     ruimteReis02 should exist
   }
 
   it should "return an NotReadableException if the user does not have the permission to read the dir" in {
     removeOwnerPermissions(depositOne)
-    new DepositManager(depositOnePath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    new DepositManager(depositOnePath).deleteDepositFromDir(deleteParameters, "INGEST_FLOW") should matchPattern {
       case Failure(NotReadableException(`depositOnePath`, _)) =>
     }
     depositOne should exist
@@ -320,7 +354,8 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val properties = depositOne / "deposit.properties"
     val propertiesPath = properties.path
     properties.removePermission(PosixFilePermission.OWNER_READ)
-    new DepositManager(depositOnePath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    new DepositManager(depositOnePath).deleteDepositFromDir(deleteParameters, "INGEST_FLOW") should matchPattern {
       case Failure(NotReadableException(`propertiesPath`, _)) =>
     }
     depositOne should exist
@@ -328,9 +363,37 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
 
   it should "return a NotReadAbleException when the deposit.properties file is absent" in {
     val propertiesPath = (depositDirWithoutProperties / "deposit.properties").path
-    new DepositManager(depositDirWithoutPropertiesPath).deleteDepositFromDir(Some("user001"), 1, SUBMITTED, onlyData = false) should matchPattern {
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    new DepositManager(depositDirWithoutPropertiesPath).deleteDepositFromDir(deleteParameters, "INGEST_FLOW") should matchPattern {
       case Failure(NotReadableException(`propertiesPath`, _)) =>
     }
+  }
+
+  it should "change state and state description in deposit.properties when newStateLabel and newStateDesciption are given" in {
+    ruimteReis01 should exist
+    val depositManager = new DepositManager(ruimteReis01Path)
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = true, newState = Some(State.INVALID, "abandoned draft, data removed"))
+    depositManager.deleteDepositFromDir(deleteParameters, "INGEST_FLOW") shouldBe a[Success[_]]
+    depositManager.getStateLabel shouldBe INVALID
+    depositManager.getStateDescription shouldBe Some("abandoned draft, data removed")
+  }
+
+  it should "not change state and state description in deposit.properties when newStateLabel and newStateDesciption are given, but doUpdate = false" in {
+    ruimteReis01 should exist
+    val depositManager = new DepositManager(ruimteReis01Path)
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = true, doUpdate = false, newState = Some(State.INVALID, "abandoned draft, data removed"))
+    depositManager.deleteDepositFromDir(deleteParameters, "INGEST_FLOW") shouldBe a[Success[_]]
+    depositManager.getStateLabel shouldBe SUBMITTED
+    depositManager.getStateDescription shouldBe Some("Deposit is valid and ready for post-submission processing")
+  }
+
+  it should "return correct DepositInformation" in {
+    ruimteReis01 should exist
+    val depositManager = new DepositManager(ruimteReis01Path)
+    val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
+    val depositInfo = depositManager.deleteDepositFromDir(deleteParameters, "INGEST_FLOW").toOption.flatten.getOrElse("").toString
+    val result = depositInfo.slice(0, depositInfo.indexOf("2018-11"))   // because timestamp differs in each test run, we compare the contents till the first tiestamp
+    result shouldBe "DepositInformation(aba410b6-1a55-40b2-9ebe-6122aad00285,n/a,None,n/a,user001,SUBMITTED,Deposit is valid and ready for post-submission processing,"
   }
 
   "getDeposit" should "succeed" in {
@@ -362,5 +425,16 @@ class DepositManagerSpec extends TestSupportFixture with BeforeAndAfterEach {
     val fiveDaysAgo = DateTime.now(DateTimeZone.UTC).minusDays(daysAgo)
     setupDepositManager.setProperty("creation.timestamp", fiveDaysAgo.toString)
     setupDepositManager.saveProperties()
+  }
+
+  private def createProperties(): PropertiesConfiguration = {
+    val properties = new PropertiesConfiguration()
+    properties.setProperty("easy-sword2", "")
+    properties.setProperty("easy-ingest-flow-inbox", "")
+    properties.setProperty("fedora.url", "http://something")
+    properties.setProperty("fedora.user", "")
+    properties.setProperty("fedora.password", "")
+    properties.setProperty("landing-pages.base-url", "")
+    properties
   }
 }

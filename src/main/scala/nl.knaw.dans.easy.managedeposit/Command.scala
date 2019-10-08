@@ -33,13 +33,13 @@ object Command extends App with DebugEnhancedLogging {
   val app = new EasyManageDepositApp(configuration)
 
   @tailrec
-  private def cleanInteraction: Boolean = {
-    StdIn.readLine("This action will delete data from the deposit area. OK? (y/n):") match {
+  private def cleanInteraction(): Boolean = {
+    StdIn.readLine("This action will delete data from the deposit area. OK? (y/n): ") match {
       case "y" => true
       case "n" => false
       case _ =>
         println("Please enter a valid char : y or n")
-        cleanInteraction
+        cleanInteraction()
     }
   }
 
@@ -51,9 +51,20 @@ object Command extends App with DebugEnhancedLogging {
     case commandLine.reportCmd :: (error @ commandLine.reportCmd.errorCmd) :: Nil =>
       app.createErrorReport(error.depositor.toOption, error.age.toOption)
     case (clean @ commandLine.cleanCmd) :: Nil =>
-      Console.out.println(s"Deleting ${ if(clean.dataOnly()) "data from " else "" }deposits with state ${clean.state()} for ${clean.depositor.toOption.getOrElse("all users")}")
-      if (cleanInteraction)
-        app.cleanDepositor(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly())
+      val newState = for {
+        state <- clean.newStateLabel.toOption
+        description <- clean.newStateDescription.toOption
+      } yield (state, description)
+      val deleteParams = DeleteParameters(clean.depositor.toOption, clean.keep(), clean.state(), clean.dataOnly(), clean.doUpdate(), newState, clean.output())
+      val deleting = if (clean.doUpdate()) "Deleting"
+                     else "To be deleted"
+      val dataFrom = if (clean.dataOnly()) "data from "
+                     else ""
+      val replacingWithState = clean.newStateLabel.toOption.fold("")(stateLabel => s", replacing with state $stateLabel")
+      val depositor = clean.depositor.toOption.getOrElse("all users")
+      Console.err.println(s"$deleting ${ dataFrom }deposits with state ${ clean.state() }$replacingWithState for $depositor")
+      if (clean.force() || cleanInteraction())
+        app.cleanDeposits(deleteParams)
       else
         Try { "Clean operation aborted by user" }
     case (syncFedora @ commandLine.`syncFedoraState`) :: Nil =>
