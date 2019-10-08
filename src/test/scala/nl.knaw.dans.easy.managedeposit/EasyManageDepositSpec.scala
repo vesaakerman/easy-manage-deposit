@@ -30,13 +30,14 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
   override def beforeEach(): Unit = {
     super.beforeEach()
     depositDir.clear()
-    File(getClass.getResource("/inputForEasyManageDepositClean/").toURI).copyTo(depositDir)
+    File(getClass.getResource("/inputForEasyManageDeposit/").toURI).copyTo(depositDir)
+    (depositDir / "deposit-no-properties").delete() // delete deposit that would let the 'deleteDepositsFromDepositsDir' fail
   }
 
   "deleteDepositsFromDepositsDir" should "return a list of two DepositInformation items" in {
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = SUBMITTED, onlyData = false, doUpdate = true)
     val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters, "SWORD2")
-    inside (result) {
+    inside(result) {
       case Success(n) =>
         n should have size 2
     }
@@ -52,7 +53,7 @@ class EasyManageDepositSpec extends TestSupportFixture with BeforeAndAfterEach {
   it should "return an empty list when no deposits to delete" in {
     val deleteParameters = DeleteParameters(Some("user001"), age = 1, state = UNKNOWN, onlyData = false, doUpdate = true)
     val result = app.deleteDepositsFromDepositsDir(depositDir.path, deleteParameters, "SWORD2")
-    inside (result) {
+    inside(result) {
       case Success(n) =>
         n should have size 0
     }
