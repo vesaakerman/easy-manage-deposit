@@ -209,8 +209,8 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
       if (deleteParams.onlyData)
         deleteOnlyDataFromDeposit(deleteParams.doUpdate, depositorId, depositState)
           .doIfSuccess {
-            case true && deleteParams.doUpdate => deleteParams.newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
-            case false => // do nothing
+            case true if deleteParams.doUpdate => deleteParams.newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
+            case _ => // do nothing
           }
       else
         deleteDepositDirectory(deleteParams.doUpdate, depositorId, depositState)
