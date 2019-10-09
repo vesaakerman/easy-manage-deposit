@@ -209,7 +209,7 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
       if (deleteParams.onlyData)
         deleteOnlyDataFromDeposit(deleteParams.doUpdate, depositorId, depositState)
           .doIfSuccess {
-            case true => deleteParams.newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
+            case true => if (deleteParams.doUpdate) deleteParams.newState.foreach { case (newStateLabel, newStateDescription) => setState(newStateLabel, newStateDescription) }
             case false => // do nothing
           }
       else
@@ -218,8 +218,8 @@ class DepositManager(val deposit: Deposit) extends DebugEnhancedLogging {
 
     for {
       depositInfo <- getDepositInformation(location)
-      didDelete <- doDelete()
-    } yield if (didDelete) Some(depositInfo)
+      smthToDelete <- doDelete()
+    } yield if (smthToDelete) Some(depositInfo)
             else None
   }
 
