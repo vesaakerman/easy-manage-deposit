@@ -4,21 +4,32 @@
 #
 
 usage() {
-    echo "Usage: clean-deposits <state> <host-name> [<depositor-account>] [<keep>]"
+    echo "Usage: clean-deposits <state> <host-name> <to-email> [<depositor-account>] [<keep>]"
     echo "       clean-deposits --help"
 }
 
+while true; do
+    case "$1" in
+        -h | --help) usage; exit 0 ;;
+        *) break;;
+    esac
+done
+
 STATE=$1
 EASY_HOST=$2
-EASY_ACCOUNT=$3
-KEEP=$4
-TO=easy.applicatiebeheer@dans.knaw.nl
+TO=$3
+EASY_ACCOUNT=$4
+KEEP=$5
 FROM=noreply@dans.knaw.nl
 BCC=
 TMPDIR=/tmp
 
 if [[ "$EASY_ACCOUNT" == "-" ]]; then
     EASY_ACCOUNT=""
+fi
+
+if [[ "$TO" == "-" ]]; then
+    TO=easy.applicatiebeheer@dans.knaw.nl
 fi
 
 if [[ "$KEEP" == "" ]]; then
