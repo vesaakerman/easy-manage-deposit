@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Helper script to delete all deposits that are in <STATE> state and are older than two weeks.
+# Helper script to delete all deposits that are in <state> state and are older than <keep> days (default two weeks).
 #
 
 usage() {
@@ -12,8 +12,7 @@ STATE=$1
 EASY_HOST=$2
 EASY_ACCOUNT=$3
 KEEP=$4
-#TO=easy.applicatiebeheer@dans.knaw.nl
-TO=vesa.akerman@dans.knaw.nl
+TO=easy.applicatiebeheer@dans.knaw.nl
 FROM=noreply@dans.knaw.nl
 BCC=
 TMPDIR=/tmp
