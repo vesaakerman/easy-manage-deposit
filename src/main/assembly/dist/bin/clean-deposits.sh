@@ -24,12 +24,12 @@ FROM=noreply@dans.knaw.nl
 BCC=
 TMPDIR=/tmp
 
-if [[ "$EASY_ACCOUNT" == "-" ]]; then
-    EASY_ACCOUNT=""
-fi
-
 if [[ "$TO" == "-" ]]; then
     TO=easy.applicatiebeheer@dans.knaw.nl
+fi
+
+if [[ "$EASY_ACCOUNT" == "-" ]]; then
+    EASY_ACCOUNT=""
 fi
 
 if [[ "$KEEP" == "" ]]; then
